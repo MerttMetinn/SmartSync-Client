@@ -8,6 +8,7 @@ interface User {
   email: string
   name: string
   type: UserType
+  isPremium?: boolean
 }
 
 interface AuthContextType {
@@ -32,7 +33,8 @@ const MOCK_USERS = [
     email: 'kullanici@ornek.com',
     password: '123456',
     name: 'Örnek Kullanıcı',
-    type: 'customer' as UserType
+    type: 'customer' as UserType,
+    isPremium: false
   }
 ]
 
@@ -54,7 +56,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (userType === 'company') {
         navigate('/admin')
       } else {
-        navigate('/customer')
+        navigate('/customer/home')
       }
     } else {
       throw new Error('Geçersiz kullanıcı bilgileri')

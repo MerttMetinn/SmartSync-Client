@@ -6,13 +6,14 @@ import { useAuth } from './contexts/AuthContext'
 // Layouts
 import AuthLayout from './layouts/AuthLayout'
 import AdminLayout from './layouts/AdminLayout'
+import CustomerLayout from './layouts/CustomerLayout'
 
 // Routes
 import AdminRoutes from './routes/AdminRoutes'
+import CustomerRoutes from './routes/CustomerRoutes'
 
 // Lazy loaded pages
 const AuthPage = lazy(() => import('./pages/Auth/AuthPage'))
-const HomePage = lazy(() => import('./pages/Customer/HomePage'))
 const NotFoundPage = lazy(() => import('./pages/NotFoundPage'))
 
 const PageLoader = () => (
@@ -21,7 +22,12 @@ const PageLoader = () => (
   </div>
 )
 
-const ProtectedRoute = ({ children, allowedUserType }: { children: React.ReactNode, allowedUserType: 'company' | 'customer' }) => {
+interface ProtectedRouteProps {
+  children: React.ReactNode
+  allowedUserType: 'company' | 'customer'
+}
+
+const ProtectedRoute = ({ children, allowedUserType }: ProtectedRouteProps) => {
   const { user } = useAuth()
 
   if (!user) {
@@ -29,47 +35,52 @@ const ProtectedRoute = ({ children, allowedUserType }: { children: React.ReactNo
   }
 
   if (user.type !== allowedUserType) {
-    return <Navigate to="/auth" replace />
+    return <Navigate to={user.type === 'company' ? '/admin' : '/customer'} replace />
   }
 
   return <>{children}</>
 }
 
 const AppRoutes = () => {
+  const { user } = useAuth()
+
   return (
     <Suspense fallback={<PageLoader />}>
       <Routes>
-        {/* Auth Routes */}
-        <Route element={<AuthLayout />}>
-          <Route index element={<Navigate to="/auth" replace />} />
-          <Route path="/auth" element={<AuthPage />} />
+        {/* Auth Route */}
+        <Route path="/auth" element={<AuthLayout />}>
+          <Route index element={<AuthPage />} />
         </Route>
 
         {/* Admin Routes */}
         <Route
-          path="/admin"
+          path="/admin/*"
           element={
             <ProtectedRoute allowedUserType="company">
               <AdminLayout />
             </ProtectedRoute>
           }
         >
-          {AdminRoutes.map((route) => (
-            <Route
-              key={route.path}
-              path={route.path}
-              element={route.element}
-            />
-          ))}
+          <Route path="*" element={<AdminRoutes />} />
         </Route>
 
         {/* Customer Routes */}
         <Route
-          path="/customer"
+          path="/customer/*"
           element={
             <ProtectedRoute allowedUserType="customer">
-              <HomePage />
+              <CustomerLayout />
             </ProtectedRoute>
+          }
+        >
+          <Route path="*" element={<CustomerRoutes />} />
+        </Route>
+
+        {/* Root Redirect */}
+        <Route
+          path="/"
+          element={
+            <Navigate to={user ? (user.type === 'company' ? '/admin' : '/customer/home') : '/auth'} replace />
           }
         />
 
