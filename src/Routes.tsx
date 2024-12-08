@@ -5,21 +5,22 @@ import { useAuth } from './contexts/AuthContext'
 
 // Layouts
 import AuthLayout from './layouts/AuthLayout'
+import AdminLayout from './layouts/AdminLayout'
+
+// Routes
+import AdminRoutes from './routes/AdminRoutes'
 
 // Lazy loaded pages
 const AuthPage = lazy(() => import('./pages/Auth/AuthPage'))
-const DashboardPage = lazy(() => import('./pages/Admin/DashboardPage'))
 const HomePage = lazy(() => import('./pages/Customer/HomePage'))
 const NotFoundPage = lazy(() => import('./pages/NotFoundPage'))
 
-// Loading component
 const PageLoader = () => (
   <div className="flex h-screen items-center justify-center">
     <Loader2 className="h-8 w-8 animate-spin text-primary" />
   </div>
 )
 
-// Protected Route Component
 const ProtectedRoute = ({ children, allowedUserType }: { children: React.ReactNode, allowedUserType: 'company' | 'customer' }) => {
   const { user } = useAuth()
 
@@ -49,10 +50,18 @@ const AppRoutes = () => {
           path="/admin"
           element={
             <ProtectedRoute allowedUserType="company">
-              <DashboardPage />
+              <AdminLayout />
             </ProtectedRoute>
           }
-        />
+        >
+          {AdminRoutes.map((route) => (
+            <Route
+              key={route.path}
+              path={route.path}
+              element={route.element}
+            />
+          ))}
+        </Route>
 
         {/* Customer Routes */}
         <Route
