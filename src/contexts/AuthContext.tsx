@@ -34,7 +34,7 @@ const MOCK_USERS = [
     password: '123456',
     name: 'Örnek Kullanıcı',
     type: 'customer' as UserType,
-    isPremium: false
+    isPremium: true
   }
 ]
 
@@ -43,7 +43,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const navigate = useNavigate()
 
   const login = async (email: string, password: string, userType: UserType) => {
-    // Mock login işlemi
     const mockUser = MOCK_USERS.find(
       u => u.email === email && u.password === password && u.type === userType
     )
@@ -52,7 +51,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const { password: _, ...userWithoutPassword } = mockUser
       setUser(userWithoutPassword)
       
-      // Kullanıcı tipine göre yönlendirme
       if (userType === 'company') {
         navigate('/admin')
       } else {
