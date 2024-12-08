@@ -2,15 +2,7 @@ import React from 'react'
 import { NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
 import Swal from 'sweetalert2'
-import {
-  LayoutDashboard,
-  Package,
-  BarChart3,
-  ClipboardList,
-  Users,
-  Settings,
-  LogOut,
-} from 'lucide-react'
+import { LayoutDashboard, Package, BarChart3, ClipboardList, Users, Settings, LogOut } from 'lucide-react'
 import { Tooltip } from '@/components/ui/tooltip'
 
 interface SidebarProps {
@@ -18,36 +10,12 @@ interface SidebarProps {
 }
 
 const menuItems = [
-  {
-    title: 'Dashboard',
-    path: '/admin',
-    icon: LayoutDashboard
-  },
-  {
-    title: 'Ürün Yönetimi',
-    path: '/admin/products',
-    icon: Package
-  },
-  {
-    title: 'Stok Durumu',
-    path: '/admin/inventory',
-    icon: BarChart3
-  },
-  {
-    title: 'Sipariş Logları',
-    path: '/admin/logs',
-    icon: ClipboardList
-  },
-  {
-    title: 'Müşteriler',
-    path: '/admin/customers',
-    icon: Users
-  },
-  {
-    title: 'Ayarlar',
-    path: '/admin/settings',
-    icon: Settings
-  }
+  { title: 'Dashboard', path: '/admin', icon: LayoutDashboard },
+  { title: 'Ürün Yönetimi', path: '/admin/products', icon: Package },
+  { title: 'Stok Durumu', path: '/admin/inventory', icon: BarChart3 },
+  { title: 'Sipariş Logları', path: '/admin/logs', icon: ClipboardList },
+  { title: 'Müşteriler', path: '/admin/customers', icon: Users },
+  { title: 'Ayarlar', path: '/admin/settings', icon: Settings }
 ]
 
 const Sidebar = ({ isOpen }: SidebarProps) => {
@@ -86,7 +54,7 @@ const Sidebar = ({ isOpen }: SidebarProps) => {
 
   return (
     <aside 
-      className={`fixed lg:static inset-y-0 left-0 z-50 w-64 bg-white/80 dark:bg-gray-800/80 backdrop-blur-lg shadow-lg border-r border-gray-200/50 dark:border-gray-700/50 transition-all duration-300 ease-in-out ${
+      className={`fixed lg:sticky top-0 left-0 z-50 h-screen bg-white/80 dark:bg-gray-800/80 backdrop-blur-lg shadow-lg border-r border-gray-200/50 dark:border-gray-700/50 transition-all duration-300 ease-in-out ${
         isOpen ? 'w-64' : 'w-20'
       }`}
     >
@@ -99,7 +67,7 @@ const Sidebar = ({ isOpen }: SidebarProps) => {
           </h1>
         </div>
 
-        <nav className="flex-1 px-4 py-4 space-y-1 overflow-y-auto">
+        <nav className="flex-1 px-2 py-4 space-y-1 overflow-y-auto">
           {menuItems.map((item) => {
             const isActive = location.pathname === item.path || 
                            (item.path === '/admin' && location.pathname === '/admin/');
@@ -154,3 +122,4 @@ const Sidebar = ({ isOpen }: SidebarProps) => {
 }
 
 export default Sidebar
+

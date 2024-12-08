@@ -44,7 +44,7 @@ const stats = [
 
 const DashboardPage = () => {
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {stats.map((stat, index) => (
           <Card 
@@ -81,8 +81,8 @@ const DashboardPage = () => {
         ))}
       </div>
 
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-        <Card className="lg:col-span-2 p-6">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2 xl:grid-cols-3">
+        <Card className="col-span-1 lg:col-span-2 xl:col-span-2 p-6">
           <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
             Satış Grafiği
           </h3>
@@ -91,7 +91,7 @@ const DashboardPage = () => {
           </div>
         </Card>
 
-        <Card className="p-6">
+        <Card className="col-span-1 p-6">
           <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
             Son Aktiviteler
           </h3>

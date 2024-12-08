@@ -11,32 +11,26 @@ export default function AdminLayout() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true)
   const location = useLocation()
 
-  // Sayfa değiştiğinde mobilde sidebar'ı otomatik kapat
+  useEffect(() => {
+    const handleResize = () => {
+      setIsSidebarOpen(window.innerWidth >= 1024)
+    }
+
+    window.addEventListener('resize', handleResize)
+    handleResize() // Initial check
+    return () => window.removeEventListener('resize', handleResize)
+  }, [])
+
   useEffect(() => {
     if (window.innerWidth < 1024) {
       setIsSidebarOpen(false)
     }
   }, [location.pathname])
 
-  // Ekran boyutu değiştiğinde sidebar durumunu kontrol et
-  useEffect(() => {
-    const handleResize = () => {
-      if (window.innerWidth < 1024) {
-        setIsSidebarOpen(false)
-      } else {
-        setIsSidebarOpen(true)
-      }
-    }
-
-    window.addEventListener('resize', handleResize)
-    return () => window.removeEventListener('resize', handleResize)
-  }, [])
-
   return (
     <div className="flex h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-gray-900 dark:to-gray-800">
       <Sidebar isOpen={isSidebarOpen} />
       
-      {/* Mobilde sidebar açıkken overlay göster */}
       {isSidebarOpen && (
         <div 
           className="fixed inset-0 bg-black/50 lg:hidden z-40"
@@ -44,11 +38,9 @@ export default function AdminLayout() {
         />
       )}
 
-      <div className={`flex-1 flex flex-col overflow-hidden transition-all duration-300 ${
-        isSidebarOpen ? '' : ''
-      }`}>
+      <div className="flex-1 flex flex-col overflow-hidden">
         <header className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-lg shadow-lg border-b border-gray-200/50 dark:border-gray-700/50">
-          <div className="px-6 py-4 flex items-center justify-between">
+          <div className="px-4 sm:px-6 py-4 flex items-center justify-between">
             <div className="flex items-center gap-4">
               <button
                 onClick={() => setIsSidebarOpen(!isSidebarOpen)}
@@ -57,11 +49,11 @@ export default function AdminLayout() {
               >
                 <Menu className="h-5 w-5 text-gray-600 dark:text-gray-300" />
               </button>
-              <h2 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+              <h2 className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
                 SmartSync Yönetim Paneli
               </h2>
             </div>
-            <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-2 sm:space-x-4">
               <button 
                 className="p-2 rounded-lg bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
                 aria-label="Bildirimler"
@@ -79,7 +71,7 @@ export default function AdminLayout() {
                   <Sun className="h-5 w-5 text-gray-300" />
                 )}
               </button>
-              <div className="flex items-center space-x-3 px-4 py-2 rounded-lg bg-gradient-to-r from-blue-500 to-purple-600 text-white font-medium shadow-lg hover:shadow-xl transition-shadow">
+              <div className="hidden sm:flex items-center space-x-3 px-4 py-2 rounded-lg bg-gradient-to-r from-blue-500 to-purple-600 text-white font-medium shadow-lg hover:shadow-xl transition-shadow">
                 <span className="text-sm">{user?.name}</span>
               </div>
             </div>
@@ -94,3 +86,4 @@ export default function AdminLayout() {
     </div>
   )
 }
+
