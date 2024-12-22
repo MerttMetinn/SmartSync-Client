@@ -24,31 +24,45 @@ const PageLoader = () => (
 
 interface ProtectedRouteProps {
   children: React.ReactNode
-  allowedUserType: 'company' | 'customer'
+  allowedUserType: 'admin' | 'customer'
 }
 
 const ProtectedRoute = ({ children, allowedUserType }: ProtectedRouteProps) => {
-  const { user } = useAuth()
+  const { user, isLoading } = useAuth()
+
+  if (isLoading) {
+    return <PageLoader />
+  }
 
   if (!user) {
     return <Navigate to="/auth" replace />
   }
 
   if (user.type !== allowedUserType) {
-    return <Navigate to={user.type === 'company' ? '/admin' : '/customer'} replace />
+    return <Navigate to={user.type === 'admin' ? '/admin' : '/customer'} replace />
   }
 
   return <>{children}</>
 }
 
 const AppRoutes = () => {
-  const { user } = useAuth()
+  const { user, isLoading } = useAuth()
+
+  if (isLoading) {
+    return <PageLoader />
+  }
 
   return (
     <Suspense fallback={<PageLoader />}>
       <Routes>
         {/* Auth Route */}
-        <Route path="/auth" element={<AuthLayout />}>
+        <Route path="/auth" element={
+          user ? (
+            <Navigate to={user.type === 'admin' ? '/admin' : '/customer/home'} replace />
+          ) : (
+            <AuthLayout />
+          )
+        }>
           <Route index element={<AuthPage />} />
         </Route>
 
@@ -56,7 +70,7 @@ const AppRoutes = () => {
         <Route
           path="/admin/*"
           element={
-            <ProtectedRoute allowedUserType="company">
+            <ProtectedRoute allowedUserType="admin">
               <AdminLayout />
             </ProtectedRoute>
           }
@@ -80,7 +94,7 @@ const AppRoutes = () => {
         <Route
           path="/"
           element={
-            <Navigate to={user ? (user.type === 'company' ? '/admin' : '/customer/home') : '/auth'} replace />
+            <Navigate to={user ? (user.type === 'admin' ? '/admin' : '/customer/home') : '/auth'} replace />
           }
         />
 

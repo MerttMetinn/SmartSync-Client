@@ -2,7 +2,7 @@ import React, { createContext, useContext, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import axiosInstance from './axiosInstance'
 
-type UserType = 'company' | 'customer'
+type UserType = 'admin' | 'customer'
 
 interface User {
   id: string
@@ -18,19 +18,20 @@ interface AuthContextType {
   login: (usernameOrEmail: string, password: string, userType: UserType) => Promise<void>
   register: (username: string, email: string, password: string, userType: UserType) => Promise<boolean>
   logout: () => void
+  isLoading: boolean
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
   const navigate = useNavigate()
 
   const login = async (usernameOrEmail: string, password: string, userType: UserType) => {
     try {
-      // Kullanıcı tipine göre endpoint seçimi
-      const endpoint = userType === 'company' 
-        ? '/api/Company/Login' 
+      const endpoint = userType === 'admin' 
+        ? '/api/Admin/LoginAdmin' 
         : '/api/Customer/Login'
 
       const response = await axiosInstance.post(endpoint, {
@@ -39,7 +40,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       })
 
       localStorage.setItem('AccessToken', response.data.token)
-      localStorage.setItem('UserType', userType) // Kullanıcı tipini de saklayalım
+      localStorage.setItem('UserType', userType)
+      localStorage.setItem('UserData', JSON.stringify({
+        id: response.data.id,
+        email: response.data.email,
+        username: response.data.username,
+        name: response.data.name,
+        type: userType
+      }))
 
       setUser({
         id: response.data.id,
@@ -49,8 +57,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         type: userType
       })
 
-      // Kullanıcı tipine göre yönlendirme
-      if (userType === 'company') {
+      if (userType === 'admin') {
         navigate('/admin')
       } else {
         navigate('/customer/home')
@@ -62,13 +69,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const register = async (username: string, email: string, password: string, userType: UserType) => {
     try {
-      const endpoint = userType === 'company' 
-        ? '/api/Company/SignUp' 
+      const endpoint = userType === 'admin' 
+        ? '/api/Admin/SignUpAdmin' 
         : '/api/Customer/SignUp'
 
       const randomBudget = Math.floor(Math.random() * (3000 - 500 + 1)) + 500
 
-      const registerData = userType === 'company' 
+      const registerData = userType === 'admin' 
         ? {
             username,
             mail: email,
@@ -91,32 +98,47 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const logout = () => {
     localStorage.removeItem('AccessToken')
     localStorage.removeItem('UserType')
+    localStorage.removeItem('UserData')
     setUser(null)
     navigate('/auth')
   }
 
-  // Uygulama başladığında kullanıcı tipini kontrol et
+  // Uygulama başladığında kullanıcı bilgilerini kontrol et
   React.useEffect(() => {
-    const userType = localStorage.getItem('UserType') as UserType | null
-    const token = localStorage.getItem('AccessToken')
+    const initializeAuth = async () => {
+      const userType = localStorage.getItem('UserType') as UserType | null
+      const token = localStorage.getItem('AccessToken')
+      const userData = localStorage.getItem('UserData')
 
-    if (token && userType) {
-      // Token ve kullanıcı tipi varsa, kullanıcı bilgilerini getir
-      axiosInstance.get(userType === 'company' ? '/api/Company/Profile' : '/api/Customer/Profile')
-        .then(response => {
-          setUser({
+      if (token && userType && userData) {
+        // Önce localStorage'dan kullanıcı bilgilerini yükle
+        setUser(JSON.parse(userData))
+
+        try {
+          // API'den güncel bilgileri al
+          const response = await axiosInstance.get(
+            userType === 'admin' ? '/api/Admin/Profile' : '/api/Customer/Profile'
+          )
+          
+          const updatedUser = {
             ...response.data,
             type: userType
-          })
-        })
-        .catch(() => {
-          logout() // Hata durumunda logout yap
-        })
+          }
+          setUser(updatedUser)
+          localStorage.setItem('UserData', JSON.stringify(updatedUser))
+        } catch (error) {
+          console.error('Profil bilgileri güncellenemedi')
+          // API hatası durumunda bile localStorage'daki bilgileri koru
+        }
+      }
+      setIsLoading(false)
     }
+
+    initializeAuth()
   }, [])
 
   return (
-    <AuthContext.Provider value={{ user, login, register, logout }}>
+    <AuthContext.Provider value={{ user, login, register, logout, isLoading }}>
       {children}
     </AuthContext.Provider>
   )

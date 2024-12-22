@@ -8,7 +8,7 @@ import { toast } from 'react-toastify'
 import { useNavigate } from 'react-router-dom'
 
 interface RegisterFormProps {
-  userType: 'company' | 'customer'
+  userType: 'admin' | 'customer'
 }
 
 const RegisterForm = ({ userType }: RegisterFormProps) => {
@@ -113,7 +113,7 @@ const RegisterForm = ({ userType }: RegisterFormProps) => {
           "Kayıt yapılıyor..."
         ) : (
           <>
-            {userType === 'company' ? 'Şirket Kaydı Oluştur' : 'Hesap Oluştur'}
+            {userType === 'admin' ? 'Admin Kaydı Oluştur' : 'Hesap Oluştur'}
             <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
           </>
         )}

@@ -3,14 +3,14 @@ import LoginForm from './Forms/LoginForm'
 import RegisterForm from './Forms/RegisterForm'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Button } from '@/components/ui/button'
-import { Building2, User2 } from 'lucide-react'
+import { Building2, User2, Shield } from 'lucide-react'
 
-type UserType = 'company' | 'customer'
+type UserType = 'admin' | 'customer'
 type FormType = 'login' | 'register'
 
 const AuthPage = () => {
   const [formType, setFormType] = useState<FormType>('login')
-  const [userType, setUserType] = useState<UserType>('company')
+  const [userType, setUserType] = useState<UserType>('admin')
 
   return (
     <div className="relative">
@@ -18,15 +18,15 @@ const AuthPage = () => {
       
       <div className="mb-6 flex gap-2 p-1 bg-white/5 rounded-lg">
         <button
-          onClick={() => setUserType('company')}
+          onClick={() => setUserType('admin')}
           className={`flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-all ${
-            userType === 'company'
+            userType === 'admin'
               ? 'bg-white/10 text-white shadow-sm'
               : 'text-blue-100/60 hover:text-blue-100'
           }`}
         >
-          <Building2 className="h-4 w-4" />
-          Şirket
+          <Shield className="h-4 w-4" />
+          Admin
         </button>
         <button
           onClick={() => setUserType('customer')}
@@ -55,8 +55,8 @@ const AuthPage = () => {
             </h2>
             <p className="text-blue-100/60 text-sm">
               {formType === 'login' 
-                ? `${userType === 'company' ? 'Şirket panelinize' : 'Hesabınıza'} erişim için giriş yapın`
-                : `${userType === 'company' ? 'SmartSync iş ortağı olun' : 'SmartSync ailesine katılın'}`}
+                ? `${userType === 'admin' ? 'Admin panelinize' : 'Hesabınıza'} erişim için giriş yapın`
+                : `${userType === 'admin' ? 'Admin hesabı oluşturun' : 'SmartSync ailesine katılın'}`}
             </p>
           </div>
 
@@ -75,7 +75,7 @@ const AuthPage = () => {
           className="text-blue-100/80 hover:text-blue-100 hover:bg-white/10"
         >
           {formType === 'login'
-            ? `${userType === 'company' ? 'Şirketinizi' : 'Hesabınızı'} oluşturun`
+            ? `${userType === 'admin' ? 'Admin hesabınızı' : 'Hesabınızı'} oluşturun`
             : 'Zaten hesabınız var mı? Giriş yapın'}
         </Button>
       </div>

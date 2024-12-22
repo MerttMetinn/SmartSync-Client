@@ -7,7 +7,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import { toast } from 'react-toastify'
 
 interface LoginFormProps {
-  userType: 'company' | 'customer'
+  userType: 'admin' | 'customer'
 }
 
 const LoginForm = ({ userType }: LoginFormProps) => {
@@ -55,7 +55,7 @@ const LoginForm = ({ userType }: LoginFormProps) => {
           <Input
             name="identifier"
             type="text"
-            placeholder={userType === 'company' ? "E-posta veya kullanıcı adı" : "E-posta veya kullanıcı adı"}
+            placeholder="E-posta veya kullanıcı adı"
             className="pl-9 h-10 bg-white/10 border-white/20 text-white placeholder:text-blue-200/50 focus:border-blue-400 focus:ring-blue-400/20"
             required
           />
@@ -85,7 +85,7 @@ const LoginForm = ({ userType }: LoginFormProps) => {
           "Giriş yapılıyor..."
         ) : (
           <>
-            {userType === 'company' ? 'Şirket Girişi' : 'Giriş Yap'}
+            {userType === 'admin' ? 'Admin Girişi' : 'Giriş Yap'}
             <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
           </>
         )}
