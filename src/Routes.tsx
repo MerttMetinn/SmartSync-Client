@@ -2,6 +2,7 @@ import { Routes, Route, Navigate } from 'react-router-dom'
 import { Loader2 } from 'lucide-react'
 import { lazy, Suspense } from 'react'
 import { useAuth } from './contexts/AuthContext'
+import { CustomerProvider } from './contexts/CustomerContext'
 
 // Layouts
 import AuthLayout from './layouts/AuthLayout'
@@ -83,7 +84,9 @@ const AppRoutes = () => {
           path="/customer/*"
           element={
             <ProtectedRoute allowedUserType="customer">
-              <CustomerLayout />
+              <CustomerProvider>
+                <CustomerLayout />
+              </CustomerProvider>
             </ProtectedRoute>
           }
         >

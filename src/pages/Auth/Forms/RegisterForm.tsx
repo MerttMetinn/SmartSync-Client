@@ -32,7 +32,12 @@ const RegisterForm = ({ userType }: RegisterFormProps) => {
     }
 
     try {
-      await register(username, email, password, userType)
+      await register({
+        username,
+        email,
+        password,
+        userType
+      })
       formRef.current?.reset()
       
       toast.success('Kayıt işlemi başarılı! Giriş yapabilirsiniz.', {
@@ -61,62 +66,58 @@ const RegisterForm = ({ userType }: RegisterFormProps) => {
   }
 
   return (
-    <form ref={formRef} onSubmit={handleSubmit} className="space-y-4">
-      <div className="space-y-2">
-        <Label className="text-blue-100 text-sm">Kullanıcı Adı</Label>
-        <div className="relative">
-          <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-blue-200/50" />
+    <form ref={formRef} onSubmit={handleSubmit} className="space-y-6">
+      <div>
+        <Label htmlFor="username">Kullanıcı Adı</Label>
+        <div className="mt-1 relative">
           <Input
+            id="username"
             name="username"
             type="text"
             placeholder="Kullanıcı adı belirleyin"
-            className="pl-9 h-10 bg-white/10 border-white/20 text-white placeholder:text-blue-200/50 focus:border-blue-400 focus:ring-blue-400/20"
+            className="w-full pl-10 py-2 rounded-md bg-white/5 text-white placeholder-gray-400 border border-white/10 focus:border-blue-500 focus:ring-blue-500"
             required
           />
+          <User className="absolute w-4 h-4 top-1/2 left-3 transform -translate-y-1/2 text-gray-400" />
         </div>
       </div>
 
-      <div className="space-y-2">
-        <Label className="text-blue-100 text-sm">E-posta</Label>
-        <div className="relative">
-          <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-blue-200/50" />
+      <div>
+        <Label htmlFor="email">E-posta</Label>
+        <div className="mt-1 relative">
           <Input
+            id="email"
             name="email"
             type="email"
             placeholder="E-posta adresiniz"
-            className="pl-9 h-10 bg-white/10 border-white/20 text-white placeholder:text-blue-200/50 focus:border-blue-400 focus:ring-blue-400/20"
+            className="w-full pl-10 py-2 rounded-md bg-white/5 text-white placeholder-gray-400 border border-white/10 focus:border-blue-500 focus:ring-blue-500"
             required
           />
-        </div>
-      </div>
-      
-      <div className="space-y-2">
-        <Label className="text-blue-100 text-sm">Şifre</Label>
-        <div className="relative">
-          <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-blue-200/50" />
-          <Input
-            name="password"
-            type="password"
-            placeholder="••••••••"
-            className="pl-9 h-10 bg-white/10 border-white/20 text-white placeholder:text-blue-200/50 focus:border-blue-400 focus:ring-blue-400/20"
-            required
-          />
+          <Mail className="absolute w-4 h-4 top-1/2 left-3 transform -translate-y-1/2 text-gray-400" />
         </div>
       </div>
 
-      <Button 
-        type="submit" 
-        className="w-full h-10 bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white font-medium group mt-2"
+      <div>
+        <Label htmlFor="password">Şifre</Label>
+        <div className="mt-1 relative">
+          <Input
+            id="password"
+            name="password"
+            type="password"
+            placeholder="••••••••"
+            className="w-full pl-10 py-2 rounded-md bg-white/5 text-white placeholder-gray-400 border border-white/10 focus:border-blue-500 focus:ring-blue-500"
+            required
+          />
+          <Lock className="absolute w-4 h-4 top-1/2 left-3 transform -translate-y-1/2 text-gray-400" />
+        </div>
+      </div>
+
+      <Button
+        type="submit"
+        className="w-full bg-blue-500 text-white rounded-md py-2 px-4 hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
         disabled={isLoading}
       >
-        {isLoading ? (
-          "Kayıt yapılıyor..."
-        ) : (
-          <>
-            {userType === 'admin' ? 'Admin Kaydı Oluştur' : 'Hesap Oluştur'}
-            <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
-          </>
-        )}
+        {isLoading ? 'Kayıt yapılıyor...' : 'Hesap Oluştur'}
       </Button>
     </form>
   )
