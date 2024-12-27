@@ -5,7 +5,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import { useTheme } from '@/contexts/ThemeContext'
 import { Sun, Moon, Bell, Menu } from 'lucide-react'
 
-export default function AdminLayout() {
+const AdminLayout = () => {
   const { user } = useAuth()
   const { theme, toggleTheme } = useTheme()
   const [isSidebarOpen, setIsSidebarOpen] = useState(true)
@@ -103,4 +103,6 @@ export default function AdminLayout() {
     </div>
   )
 }
+
+export default AdminLayout
 

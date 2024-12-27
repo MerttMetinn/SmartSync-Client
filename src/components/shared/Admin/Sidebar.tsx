@@ -1,9 +1,8 @@
 import React from 'react'
-import { NavLink, useLocation, useNavigate } from 'react-router-dom'
+import { NavLink, useLocation, useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
 import Swal from 'sweetalert2'
-import { LayoutDashboard, Package, BarChart3, ClipboardList, Users, Settings, LogOut } from 'lucide-react'
-import { Tooltip } from '@/components/ui/tooltip'
+import { LayoutDashboard, Package, BarChart3, Users, Settings, LogOut, AlertCircle, Radio, BarChart2, Box, Activity, List } from 'lucide-react'
 
 interface SidebarProps {
   isOpen: boolean
@@ -34,9 +33,16 @@ const menuItems = [
   { 
     title: 'Sipariş Logları', 
     path: '/admin/logs', 
-    icon: ClipboardList,
+    icon: AlertCircle,
     gradient: 'from-amber-400 to-orange-600',
     hoverBg: 'hover:bg-orange-50 dark:hover:bg-orange-900/20'
+  },
+  { 
+    title: 'Canlı Log Akışı', 
+    path: '/admin/live-logs', 
+    icon: Radio,
+    gradient: 'from-teal-400 to-cyan-600',
+    hoverBg: 'hover:bg-cyan-50 dark:hover:bg-cyan-900/20'
   },
   { 
     title: 'Müşteriler', 
