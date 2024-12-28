@@ -1,8 +1,8 @@
 import React from 'react'
-import { NavLink, useLocation, useNavigate, Link } from 'react-router-dom'
+import { NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
 import Swal from 'sweetalert2'
-import { LayoutDashboard, Package, BarChart3, Users, Settings, LogOut, AlertCircle, Radio, BarChart2, Box, Activity, List } from 'lucide-react'
+import { LayoutDashboard, Package, BarChart3, LogOut, AlertCircle, Radio, ShoppingCart } from 'lucide-react'
 
 interface SidebarProps {
   isOpen: boolean
@@ -31,11 +31,18 @@ const menuItems = [
     hoverBg: 'hover:bg-green-50 dark:hover:bg-green-900/20'
   },
   { 
+    title: 'Sipariş Yönetimi', 
+    path: '/admin/orders', 
+    icon: ShoppingCart,
+    gradient: 'from-amber-400 to-orange-600',
+    hoverBg: 'hover:bg-orange-50 dark:hover:bg-orange-900/20'
+  },
+  { 
     title: 'Sipariş Logları', 
     path: '/admin/logs', 
     icon: AlertCircle,
-    gradient: 'from-amber-400 to-orange-600',
-    hoverBg: 'hover:bg-orange-50 dark:hover:bg-orange-900/20'
+    gradient: 'from-pink-400 to-rose-600',
+    hoverBg: 'hover:bg-rose-50 dark:hover:bg-rose-900/20'
   },
   { 
     title: 'Canlı Log Akışı', 
@@ -44,20 +51,6 @@ const menuItems = [
     gradient: 'from-teal-400 to-cyan-600',
     hoverBg: 'hover:bg-cyan-50 dark:hover:bg-cyan-900/20'
   },
-  { 
-    title: 'Müşteriler', 
-    path: '/admin/customers', 
-    icon: Users,
-    gradient: 'from-pink-400 to-rose-600',
-    hoverBg: 'hover:bg-rose-50 dark:hover:bg-rose-900/20'
-  },
-  { 
-    title: 'Ayarlar', 
-    path: '/admin/settings', 
-    icon: Settings,
-    gradient: 'from-indigo-400 to-blue-600',
-    hoverBg: 'hover:bg-blue-50 dark:hover:bg-blue-900/20'
-  }
 ]
 
 const Sidebar = ({ isOpen }: SidebarProps) => {

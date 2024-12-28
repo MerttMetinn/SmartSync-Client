@@ -2,7 +2,7 @@ import { Routes, Route, Navigate } from 'react-router-dom'
 import { Loader2 } from 'lucide-react'
 import { lazy, Suspense } from 'react'
 import { useAuth } from './contexts/AuthContext'
-import { CustomerProvider } from './contexts/CustomerContext'
+import { CartProvider } from './contexts/CartContext'
 
 // Layouts
 import AuthLayout from './layouts/AuthLayout'
@@ -47,64 +47,58 @@ const ProtectedRoute = ({ children, allowedUserType }: ProtectedRouteProps) => {
 }
 
 const AppRoutes = () => {
-  const { user, isLoading } = useAuth()
-
-  if (isLoading) {
-    return <PageLoader />
-  }
+  const { user } = useAuth()
 
   return (
-    <Suspense fallback={<PageLoader />}>
-      <Routes>
-        {/* Auth Route */}
+    <Routes>
+      {/* Auth Routes */}
+      <Route element={<AuthLayout />}>
         <Route path="/auth" element={
-          user ? (
-            <Navigate to={user.type === 'admin' ? '/admin' : '/customer/home'} replace />
-          ) : (
-            <AuthLayout />
-          )
-        }>
-          <Route index element={<AuthPage />} />
-        </Route>
+          <Suspense fallback={<PageLoader />}>
+            <AuthPage />
+          </Suspense>
+        } />
+      </Route>
 
-        {/* Admin Routes */}
-        <Route
-          path="/admin/*"
-          element={
-            <ProtectedRoute allowedUserType="admin">
-              <AdminLayout />
-            </ProtectedRoute>
-          }
-        >
-          <Route path="*" element={<AdminRoutes />} />
-        </Route>
+      {/* Admin Routes */}
+      <Route path="/admin/*" element={
+        <ProtectedRoute allowedUserType="admin">
+          <AdminLayout>
+            <Suspense fallback={<PageLoader />}>
+              <AdminRoutes />
+            </Suspense>
+          </AdminLayout>
+        </ProtectedRoute>
+      } />
 
-        {/* Customer Routes */}
-        <Route
-          path="/customer/*"
-          element={
-            <ProtectedRoute allowedUserType="customer">
-              <CustomerProvider>
-                <CustomerLayout />
-              </CustomerProvider>
-            </ProtectedRoute>
-          }
-        >
-          <Route path="*" element={<CustomerRoutes />} />
-        </Route>
+      {/* Customer Routes */}
+      <Route path="/customer/*" element={
+        <ProtectedRoute allowedUserType="customer">
+          <CartProvider>
+            <CustomerLayout>
+              <Suspense fallback={<PageLoader />}>
+                <CustomerRoutes />
+              </Suspense>
+            </CustomerLayout>
+          </CartProvider>
+        </ProtectedRoute>
+      } />
 
-        {/* Root Redirect */}
-        <Route
-          path="/"
-          element={
-            <Navigate to={user ? (user.type === 'admin' ? '/admin' : '/customer/home') : '/auth'} replace />
-          }
-        />
+      {/* Root Redirect */}
+      <Route
+        path="/"
+        element={
+          <Navigate to={user ? (user.type === 'admin' ? '/admin' : '/customer/home') : '/auth'} replace />
+        }
+      />
 
-        {/* Not Found */}
-        <Route path="*" element={<NotFoundPage />} />
-      </Routes>
-    </Suspense>
+      {/* Not Found */}
+      <Route path="*" element={
+        <Suspense fallback={<PageLoader />}>
+          <NotFoundPage />
+        </Suspense>
+      } />
+    </Routes>
   )
 }
 

@@ -1,199 +1,178 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Card } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table"
-import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
-import { ShoppingCart, AlertTriangle } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 import { useAuth } from '@/contexts/AuthContext'
-import Swal from 'sweetalert2'
+import { useCart } from '@/contexts/CartContext'
+import { toast } from 'react-toastify'
+import axiosInstance from '@/contexts/axiosInstance'
+import { AxiosError } from 'axios'
+import { Loader2 } from 'lucide-react'
+import { Store } from 'lucide-react'
 
 interface Product {
-  id: number
+  id: string
   name: string
   price: number
   stock: number
-  description: string
-  category: string
+  createdDate: string
+  orderProducts: null
+}
+
+interface ApiResponse {
+  products: Product[]
+  response: {
+    message: string
+    responseType: number
+    success: boolean
+  }
 }
 
 export function ProductsPage() {
   const { user } = useAuth()
-  const [selectedProducts, setSelectedProducts] = useState<{ [key: number]: number }>({})
+  const { addToCart } = useCart()
+  const [products, setProducts] = useState<Product[]>([])
+  const [loading, setLoading] = useState(true)
+  const [quantities, setQuantities] = useState<{ [key: string]: number }>({})
 
-  const products: Product[] = [
-    {
-      id: 1,
-      name: "Ürün A",
-      price: 1500,
-      stock: 10,
-      description: "Premium kalite ürün",
-      category: "Elektronik"
-    },
-    {
-      id: 2,
-      name: "Ürün B",
-      price: 750,
-      stock: 5,
-      description: "Orta segment ürün",
-      category: "Aksesuar"
-    },
-    {
-      id: 3,
-      name: "Ürün C",
-      price: 2500,
-      stock: 3,
-      description: "Üst segment ürün",
-      category: "Elektronik"
+  // Ürünleri getir
+  const fetchProducts = async () => {
+    try {
+      const response = await axiosInstance.get<ApiResponse>('/api/Product/GetProducts')
+      console.log('API Yanıtı:', response.data)
+      
+      if (response.data.response.success && response.data.products) {
+        const products = response.data.products
+        console.log('Ürünler:', products)
+        setProducts(products)
+        
+        // Her ürün için varsayılan miktar 1 olarak ayarla
+        const defaultQuantities = products.reduce((acc, product) => ({
+          ...acc,
+          [product.id]: 1
+        }), {})
+        setQuantities(defaultQuantities)
+      } else {
+        console.log('API başarılı ancak veri yok:', response.data)
+        toast.warning('Henüz ürün bulunmuyor.')
+      }
+    } catch (error) {
+      if (error instanceof AxiosError) {
+        console.error('API Hatası:', error.response?.data)
+        toast.error(error.response?.data?.message || 'Ürünler yüklenirken bir hata oluştu')
+      }
+    } finally {
+      setLoading(false)
     }
-  ]
+  }
 
-  const handleQuantityChange = (productId: number, quantity: string) => {
-    const numQuantity = parseInt(quantity)
-    if (isNaN(numQuantity) || numQuantity < 0) return
+  useEffect(() => {
+    fetchProducts()
+  }, [])
+
+  const handleQuantityChange = (productId: string, value: string) => {
+    const quantity = parseInt(value)
+    if (isNaN(quantity) || quantity < 1) return
 
     const product = products.find(p => p.id === productId)
     if (!product) return
 
-    if (numQuantity > 5) {
-      Swal.fire({
-        icon: 'warning',
-        title: 'Maksimum Sipariş Limiti',
-        text: 'Bir üründen en fazla 5 adet sipariş verebilirsiniz.'
-      })
+    if (quantity > 5) {
+      toast.warning('Bir üründen en fazla 5 adet satın alabilirsiniz.')
       return
     }
 
-    if (numQuantity > product.stock) {
-      Swal.fire({
-        icon: 'warning',
-        title: 'Yetersiz Stok',
-        text: 'Seçtiğiniz miktar stok miktarından fazla olamaz.'
-      })
+    if (quantity > product.stock) {
+      toast.warning('Seçtiğiniz miktar stok miktarından fazla olamaz.')
       return
     }
 
-    setSelectedProducts(prev => ({
+    setQuantities(prev => ({
       ...prev,
-      [productId]: numQuantity
+      [productId]: quantity
     }))
   }
 
-  const getStockStatus = (stock: number) => {
-    if (stock > 10) {
-      return {
-        text: 'Stokta Var',
-        color: 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-300'
-      }
-    } else if (stock > 0) {
-      return {
-        text: 'Sınırlı Stok',
-        color: 'bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-300'
-      }
-    } else {
-      return {
-        text: 'Stokta Yok',
-        color: 'bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-300'
-      }
-    }
+  const handleAddToCart = (product: Product) => {
+    const quantity = quantities[product.id] || 1
+    addToCart(product, quantity)
+    toast.success('Ürün sepete eklendi')
   }
 
-  const calculateTotal = () => {
-    return Object.entries(selectedProducts).reduce((total, [productId, quantity]) => {
-      const product = products.find(p => p.id === parseInt(productId))
-      return total + (product?.price || 0) * quantity
-    }, 0)
-  }
-
-  const handleOrder = async () => {
-    const total = calculateTotal()
-    if (total === 0) {
-      Swal.fire({
-        icon: 'warning',
-        title: 'Boş Sipariş',
-        text: 'Lütfen en az bir ürün seçiniz.'
-      })
-      return
-    }
-
-    const result = await Swal.fire({
-      title: 'Sipariş Onayı',
-      html: `
-        Toplam Tutar: ${total.toFixed(2)} TL<br>
-        ${!user?.isPremium && total >= 2000 ? '<br><strong>Bu alışveriş ile Premium üye olacaksınız!</strong>' : ''}
-      `,
-      icon: 'question',
-      showCancelButton: true,
-      confirmButtonText: 'Sipariş Ver',
-      cancelButtonText: 'İptal'
-    })
-
-    if (result.isConfirmed) {
-      // Burada sipariş işlemi gerçekleştirilecek
-      Swal.fire({
-        icon: 'success',
-        title: 'Sipariş Alındı',
-        text: 'Siparişiniz başarıyla oluşturuldu.'
-      })
-      setSelectedProducts({})
-    }
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-96">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    )
   }
 
   return (
     <div className="space-y-6">
+      {/* Başlık ve Bakiye */}
       <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Ürünler</h1>
-        <Button onClick={handleOrder} disabled={Object.keys(selectedProducts).length === 0}>
-          <ShoppingCart className="mr-2 h-4 w-4" />
-          Sipariş Ver
-        </Button>
+        <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">
+          Ürünler
+        </h1>
+        <div className="bg-gradient-to-r from-blue-500/10 to-purple-500/10 dark:from-blue-500/20 dark:to-purple-500/20 px-4 py-2 rounded-full">
+          <span className="text-sm font-medium text-gray-900 dark:text-white">
+            Bakiye: ₺{user?.budget?.toFixed(2) || '0.00'}
+          </span>
+        </div>
       </div>
 
-      <Card className="bg-white dark:bg-gray-800">
-        <Table>
-          <TableHeader>
-            <TableRow className="border-gray-200 dark:border-gray-700">
-              <TableHead className="text-gray-700 dark:text-gray-300">Ürün Adı</TableHead>
-              <TableHead className="text-gray-700 dark:text-gray-300">Fiyat</TableHead>
-              <TableHead className="text-gray-700 dark:text-gray-300">Stok</TableHead>
-              <TableHead className="text-gray-700 dark:text-gray-300">Miktar</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {products.map((product) => (
-              <TableRow key={product.id} className="border-gray-200 dark:border-gray-700">
-                <TableCell>
-                  <div className="font-medium text-gray-900 dark:text-white">{product.name}</div>
-                  <div className="text-sm text-gray-600 dark:text-gray-400">{product.description}</div>
-                </TableCell>
-                <TableCell className="text-gray-900 dark:text-white">₺{product.price.toFixed(2)}</TableCell>
-                <TableCell>
-                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStockStatus(product.stock).color}`}>
-                    {getStockStatus(product.stock).text}
-                  </span>
-                </TableCell>
-                <TableCell className="text-gray-900 dark:text-white">
+      {products.length === 0 ? (
+        <Card className="p-6 text-center">
+          <div className="flex flex-col items-center gap-4">
+            <Store className="h-12 w-12 text-gray-400" />
+            <div className="space-y-1">
+              <h3 className="text-lg font-medium text-gray-900 dark:text-white">
+                Henüz Ürün Bulunmuyor
+              </h3>
+              <p className="text-sm text-gray-600 dark:text-gray-400">
+                Yakında yeni ürünler eklenecektir.
+              </p>
+            </div>
+          </div>
+        </Card>
+      ) : (
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          {products.map((product) => (
+            <Card key={product.id} className="overflow-hidden">
+              <div className="p-6 space-y-4">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                  {product.name}
+                </h3>
+                <div className="space-y-2">
+                  <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                    ₺{product.price.toFixed(2)}
+                  </p>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    Stok: {product.stock}
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
                   <Input
                     type="number"
-                    min="0"
+                    min="1"
                     max="5"
-                    value={selectedProducts[product.id] || ''}
+                    value={quantities[product.id] || 1}
                     onChange={(e) => handleQuantityChange(product.id, e.target.value)}
-                    className="w-20 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                    className="w-20"
                   />
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </Card>
+                  <Button 
+                    onClick={() => handleAddToCart(product)}
+                    disabled={product.stock === 0}
+                    className="flex-1"
+                  >
+                    Sepete Ekle
+                  </Button>
+                </div>
+              </div>
+            </Card>
+          ))}
+        </div>
+      )}
     </div>
   )
 } 

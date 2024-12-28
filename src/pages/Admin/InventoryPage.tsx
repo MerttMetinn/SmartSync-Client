@@ -1,84 +1,129 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { Card } from '@/components/ui/card'
+import axiosInstance from '@/contexts/axiosInstance'
+import { toast } from 'react-toastify'
+import { AxiosError } from 'axios'
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table"
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts'
+  BarChart,
+  Bar,
+  PieChart,
+  Pie,
+  Cell,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer
+} from 'recharts'
 
 interface Product {
   id: string
   name: string
   stock: number
   price: number
-  criticalStock: number // Kritik stok seviyesi
+  createdDate: string
 }
 
-const COLORS = ['#10B981', '#F59E0B', '#EF4444'] // Yeşil, Sarı, Kırmızı
+interface PaginatedResponse {
+  response: {
+    success: boolean
+    message: string
+    responseType: 'Success' | 'Error' | 'Warning' | 'Info'
+  }
+  products: Product[]
+}
+
+// Stok durumu için renk belirleme fonksiyonu
+const getStockColor = (stock: number) => {
+  if (stock <= 10) return '#ef4444' // Kritik seviye - Kırmızı
+  if (stock <= 20) return '#f97316' // Uyarı seviyesi - Turuncu
+  return '#22c55e' // Normal seviye - Yeşil
+}
 
 const InventoryPage = () => {
-  // Mock veri
-  const [products] = useState<Product[]>([
-    { id: '1', name: 'Ürün 1', stock: 25, price: 100, criticalStock: 10 },
-    { id: '2', name: 'Ürün 2', stock: 8, price: 150, criticalStock: 15 },
-    { id: '3', name: 'Ürün 3', stock: 50, price: 200, criticalStock: 20 },
-    { id: '4', name: 'Ürün 4', stock: 5, price: 300, criticalStock: 10 },
-    { id: '5', name: 'Ürün 5', stock: 15, price: 250, criticalStock: 12 },
-  ])
+  const [products, setProducts] = useState<Product[]>([])
 
-  // Stok durumuna göre renk belirleme
-  const getStockColor = (stock: number, criticalStock: number) => {
-    if (stock <= criticalStock / 2) return COLORS[2] // Kırmızı
-    if (stock <= criticalStock) return COLORS[1] // Sarı
-    return COLORS[0] // Yeşil
+  const fetchProducts = async () => {
+    try {
+      const response = await axiosInstance.get<PaginatedResponse>('/api/Product/GetProducts')
+      if (response.data.response.success) {
+        setProducts(response.data.products)
+      } else {
+        toast.error(response.data.response.message)
+      }
+    } catch (error: unknown) {
+      if (error instanceof AxiosError) {
+        console.error('Ürünler getirilirken hata oluştu:', error)
+        toast.error(error.response?.data?.message || 'Ürünler yüklenirken bir hata oluştu')
+      }
+    }
   }
 
+  useEffect(() => {
+    fetchProducts()
+  }, [])
+
+  // Grafik verilerini hazırla
+  const chartData = products.map(product => ({
+    name: product.name,
+    stock: product.stock,
+    color: getStockColor(product.stock)
+  }))
+
   // Pasta grafik için veri hazırlama
-  const pieData = [
-    { name: 'Yeterli Stok', value: products.filter(p => p.stock > p.criticalStock).length },
-    { name: 'Kritik Stok', value: products.filter(p => p.stock <= p.criticalStock && p.stock > p.criticalStock / 2).length },
-    { name: 'Düşük Stok', value: products.filter(p => p.stock <= p.criticalStock / 2).length }
-  ]
+  const pieData = products.reduce((acc, product) => {
+    const stockLevel = product.stock <= 10 ? 'Kritik' : product.stock <= 20 ? 'Uyarı' : 'Normal'
+    const existing = acc.find(item => item.name === stockLevel)
+    if (existing) {
+      existing.value++
+    } else {
+      acc.push({ name: stockLevel, value: 1 })
+    }
+    return acc
+  }, [] as { name: string; value: number }[])
+
+  const STOCK_COLORS = {
+    Kritik: '#ef4444',
+    Uyarı: '#f97316',
+    Normal: '#22c55e'
+  }
 
   return (
     <div className="p-6 space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-800 dark:text-white">
-          Stok Durumu
-        </h1>
-        <p className="text-gray-600 dark:text-gray-400 mt-2">
-          Ürünlerin stok durumlarını ve istatistiklerini görüntüleyin
-        </p>
-      </div>
+      <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">
+        Stok Durumu
+      </h1>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Bar Grafik */}
         <Card className="p-6 bg-white dark:bg-gray-800">
-          <h2 className="text-lg font-semibold mb-4 text-gray-800 dark:text-white">Ürün Stok Seviyeleri</h2>
+          <h2 className="text-lg font-medium text-gray-900 dark:text-white mb-4">
+            Ürün Stok Seviyeleri
+          </h2>
           <div className="h-[400px]">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={products}>
+              <BarChart data={chartData}>
                 <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="name" />
+                <XAxis 
+                  dataKey="name" 
+                  angle={-45}
+                  textAnchor="end"
+                  height={80}
+                  interval={0}
+                  tick={{ fontSize: 12 }}
+                />
                 <YAxis />
                 <Tooltip 
                   contentStyle={{ 
                     backgroundColor: 'rgba(255, 255, 255, 0.9)',
-                    border: 'none',
-                    borderRadius: '8px',
-                    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+                    border: '1px solid #ccc'
                   }}
                 />
-                <Bar dataKey="stock">
-                  {products.map((entry, index) => (
-                    <Cell 
-                      key={`cell-${index}`} 
-                      fill={getStockColor(entry.stock, entry.criticalStock)}
-                    />
+                <Legend />
+                <Bar dataKey="stock" name="Stok Miktarı">
+                  {chartData.map((entry, index) => (
+                    <Cell key={index} fill={entry.color} />
                   ))}
                 </Bar>
               </BarChart>
@@ -88,7 +133,9 @@ const InventoryPage = () => {
 
         {/* Pasta Grafik */}
         <Card className="p-6 bg-white dark:bg-gray-800">
-          <h2 className="text-lg font-semibold mb-4 text-gray-800 dark:text-white">Stok Durumu Dağılımı</h2>
+          <h2 className="text-lg font-medium text-gray-900 dark:text-white mb-4">
+            Stok Durumu Dağılımı
+          </h2>
           <div className="h-[400px]">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
@@ -97,73 +144,72 @@ const InventoryPage = () => {
                   cx="50%"
                   cy="50%"
                   labelLine={false}
-                  label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}
+                  label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
                   outerRadius={150}
                   fill="#8884d8"
                   dataKey="value"
                 >
                   {pieData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index]} />
+                    <Cell 
+                      key={`cell-${index}`} 
+                      fill={STOCK_COLORS[entry.name as keyof typeof STOCK_COLORS]} 
+                    />
                   ))}
                 </Pie>
                 <Tooltip />
+                <Legend />
               </PieChart>
             </ResponsiveContainer>
           </div>
         </Card>
-      </div>
 
-      {/* Ürün Tablosu */}
-      <Card className="bg-white dark:bg-gray-800">
-        <Table>
-          <TableHeader>
-            <TableRow className="border-gray-200 dark:border-gray-700">
-              <TableHead className="text-gray-700 dark:text-gray-300">Ürün Adı</TableHead>
-              <TableHead className="text-gray-700 dark:text-gray-300 text-right">Stok</TableHead>
-              <TableHead className="text-gray-700 dark:text-gray-300 text-right">Kritik Seviye</TableHead>
-              <TableHead className="text-gray-700 dark:text-gray-300 text-right">Fiyat</TableHead>
-              <TableHead className="text-gray-700 dark:text-gray-300">Durum</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {products.map((product) => (
-              <TableRow key={product.id} className="border-gray-200 dark:border-gray-700">
-                <TableCell className="font-medium text-gray-900 dark:text-white">
-                  {product.name}
-                </TableCell>
-                <TableCell className="text-right text-gray-800 dark:text-gray-200">
-                  {product.stock}
-                </TableCell>
-                <TableCell className="text-right text-gray-800 dark:text-gray-200">
-                  {product.criticalStock}
-                </TableCell>
-                <TableCell className="text-right text-gray-800 dark:text-gray-200">
-                  {product.price.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}
-                </TableCell>
-                <TableCell>
-                  <div 
-                    className={`px-3 py-1 rounded-full text-xs font-medium inline-block
-                      ${product.stock <= product.criticalStock / 2 
-                        ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300' 
-                        : product.stock <= product.criticalStock
-                          ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300'
-                          : 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'
-                      }
-                    `}
-                  >
-                    {product.stock <= product.criticalStock / 2 
-                      ? 'Düşük Stok' 
-                      : product.stock <= product.criticalStock
-                        ? 'Kritik Seviye'
-                        : 'Yeterli Stok'
-                    }
-                  </div>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </Card>
+        {/* Stok Durumu Tablosu */}
+        <Card className="p-6 bg-white dark:bg-gray-800 lg:col-span-2">
+          <h2 className="text-lg font-medium text-gray-900 dark:text-white mb-4">
+            Kritik Stok Seviyeleri
+          </h2>
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-gray-200 dark:border-gray-700">
+                  <th className="text-left py-3 px-4 text-sm font-medium text-gray-600 dark:text-gray-300">Ürün Adı</th>
+                  <th className="text-right py-3 px-4 text-sm font-medium text-gray-600 dark:text-gray-300">Stok</th>
+                  <th className="text-right py-3 px-4 text-sm font-medium text-gray-600 dark:text-gray-300">Durum</th>
+                </tr>
+              </thead>
+              <tbody>
+                {products
+                  .filter(product => product.stock <= 20)
+                  .sort((a, b) => a.stock - b.stock)
+                  .map(product => (
+                    <tr 
+                      key={product.id}
+                      className="border-b border-gray-200 dark:border-gray-700"
+                    >
+                      <td className="py-3 px-4 text-sm text-gray-900 dark:text-white">
+                        {product.name}
+                      </td>
+                      <td className="py-3 px-4 text-sm text-right text-gray-900 dark:text-white">
+                        {product.stock}
+                      </td>
+                      <td className="py-3 px-4 text-sm text-right">
+                        <span
+                          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+                            ${product.stock <= 10 
+                              ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'
+                              : 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400'
+                            }`}
+                        >
+                          {product.stock <= 10 ? 'Kritik' : 'Uyarı'}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+              </tbody>
+            </table>
+          </div>
+        </Card>
+      </div>
     </div>
   )
 }

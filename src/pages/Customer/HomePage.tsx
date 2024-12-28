@@ -2,13 +2,11 @@ import { Card } from '@/components/ui/card'
 import { useAuth } from '@/contexts/AuthContext'
 import { 
   Crown, 
-  Package, 
   ShoppingBag, 
   Wallet,
   TrendingUp,
   Clock,
-  CheckCircle2,
-  AlertTriangle
+  CheckCircle2
 } from 'lucide-react'
 
 const HomePage = () => {
@@ -76,10 +74,10 @@ const HomePage = () => {
       <div className="relative overflow-hidden rounded-lg bg-gradient-to-r from-blue-600 to-purple-600 p-8 shadow-lg">
         <div className="relative z-10">
           <h1 className="text-3xl font-bold text-white">
-            Hoş Geldin, {user?.name}!
+            Hoş Geldin, {user?.username}!
           </h1>
           <p className="mt-2 text-blue-100">
-            {user?.isPremium ? 'Premium üyelik ayrıcalıklarından yararlanabilirsin.' : 'Alışverişe başlayabilirsin.'}
+            {user?.customerType === 'Premium' ? 'Premium üyelik ayrıcalıklarından yararlanabilirsin.' : 'Alışverişe başlayabilirsin.'}
           </p>
         </div>
         <div className="absolute right-0 top-0 h-full w-1/3">
@@ -147,7 +145,7 @@ const HomePage = () => {
         {/* Premium Durum */}
         <Card className="p-6">
           <div className="text-center space-y-6">
-            {user?.isPremium ? (
+            {user?.customerType === 'Premium' ? (
               <>
                 <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-r from-yellow-400 to-amber-600 p-1">
                   <Crown className="h-8 w-8 text-white" />

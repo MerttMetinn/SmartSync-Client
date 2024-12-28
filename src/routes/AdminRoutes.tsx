@@ -7,8 +7,7 @@ const ProductsPage = lazy(() => import("../pages/Admin/ProductsPage"))
 const InventoryPage = lazy(() => import("../pages/Admin/InventoryPage"))
 const LogsPage = lazy(() => import("../pages/Admin/LogsPage"))
 const LiveLogsPage = lazy(() => import("../pages/Admin/LiveLogsPage"))
-const CustomersPage = lazy(() => import("../pages/Admin/CustomersPage"))
-const SettingsPage = lazy(() => import("../pages/Admin/SettingsPage"))
+const OrdersPage = lazy(() => import("../pages/Admin/OrdersPage"))
 
 const AdminRoutes = () => (
   <Routes>
@@ -17,8 +16,7 @@ const AdminRoutes = () => (
     <Route path="inventory" element={<Suspense fallback={<div>Loading...</div>}><InventoryPage /></Suspense>} />
     <Route path="logs" element={<Suspense fallback={<div>Loading...</div>}><LogsPage /></Suspense>} />
     <Route path="live-logs" element={<Suspense fallback={<div>Loading...</div>}><LiveLogsPage /></Suspense>} />
-    <Route path="customers" element={<Suspense fallback={<div>Loading...</div>}><CustomersPage /></Suspense>} />
-    <Route path="settings" element={<Suspense fallback={<div>Loading...</div>}><SettingsPage /></Suspense>} />
+    <Route path="orders" element={<Suspense fallback={<div>Loading...</div>}><OrdersPage /></Suspense>} />
   </Routes>
 )
 

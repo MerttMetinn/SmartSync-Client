@@ -1,19 +1,21 @@
 import React, { createContext, useContext, useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import axiosInstance from './axiosInstance'
+import { toast } from 'react-toastify'
 
 type UserType = 'admin' | 'customer'
+type CustomerType = 'Normal' | 'Premium'
 
 interface User {
   id: string
-  email: string
   username: string
-  name: string
+  mail: string
   type: UserType
-  isPremium?: boolean
-  budget?: number
-  totalSpent?: number
-  createdDate?: string
+  budget: number
+  totalSpent: number
+  customerType: CustomerType
+  createdDate: string
+  token?: string
 }
 
 interface AuthContextType {
@@ -28,7 +30,6 @@ interface AuthContextType {
     userType: UserType
   }) => Promise<void>
   logout: () => void
-  updateUser: (userData: Partial<User>) => Promise<void>
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -40,17 +41,47 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const navigate = useNavigate()
 
   useEffect(() => {
-    const initializeAuth = () => {
-      const token = localStorage.getItem('AccessToken')
-      const storedUser = localStorage.getItem('UserData')
+    const initializeAuth = async () => {
+      try {
+        const token = localStorage.getItem('AccessToken')
+        const storedUser = localStorage.getItem('UserData')
 
-      if (token && storedUser) {
-        setUser(JSON.parse(storedUser))
-        setIsAuthenticated(true)
-      } else {
-        setIsAuthenticated(false)
+        if (token && storedUser) {
+          // Token'ı axios instance'ına ekle
+          axiosInstance.defaults.headers.common['Authorization'] = `Bearer ${token}`
+          
+          // Kullanıcı bilgilerini güncelle
+          try {
+            const storedUserData = JSON.parse(storedUser)
+            
+            if (storedUserData.type === 'customer') {
+              const response = await axiosInstance.get('/api/Customer/GetProfile')
+              if (response.data.response.success) {
+                const userData = {
+                  ...storedUserData,
+                  budget: response.data.customer.budget || 0,
+                  totalSpent: response.data.customer.totalSpent || 0,
+                  customerType: response.data.customer.type === 0 ? 'Normal' : 'Premium'
+                }
+                setUser(userData)
+                setIsAuthenticated(true)
+              } else {
+                localStorage.removeItem('AccessToken')
+                localStorage.removeItem('UserData')
+              }
+            } else if (storedUserData.type === 'admin') {
+              // Admin için sadece stored data'yı kullan
+              setUser(storedUserData)
+              setIsAuthenticated(true)
+            }
+          } catch {
+            localStorage.removeItem('AccessToken')
+            localStorage.removeItem('UserData')
+          }
+        }
+      } finally {
+        setIsLoading(false)
       }
-      setIsLoading(false)
     }
 
     initializeAuth()
@@ -66,15 +97,43 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         password
       })
 
+      if (!response.data.response.success) {
+        throw new Error(response.data.response.message || 'Giriş işlemi başarısız oldu')
+      }
+
+      const token = response.data.token
       const userData = {
-        ...response.data,
+        ...response.data.user,
         type: userType
       }
 
-      localStorage.setItem('AccessToken', response.data.token)
+      localStorage.setItem('AccessToken', token)
       localStorage.setItem('UserData', JSON.stringify(userData))
+      
+      axiosInstance.defaults.headers.common['Authorization'] = `Bearer ${token}`
+      
       setUser(userData)
       setIsAuthenticated(true)
+
+      // Eğer müşteri girişi yapıldıysa, müşteri bilgilerini al
+      if (userType === 'customer') {
+        try {
+          const customerResponse = await axiosInstance.get('/api/Customer/GetProfile')
+          if (customerResponse.data.response.success) {
+            const customerData = {
+              ...userData,
+              budget: customerResponse.data.customer.budget || 0,
+              totalSpent: customerResponse.data.customer.totalSpent || 0,
+              customerType: customerResponse.data.customer.type === 0 ? 'Normal' : 'Premium'
+            }
+            setUser(customerData)
+            localStorage.setItem('UserData', JSON.stringify(customerData))
+          }
+        } catch {
+          setUser(userData)
+          localStorage.setItem('UserData', JSON.stringify(userData))
+        }
+      }
 
       if (userType === 'admin') {
         navigate('/admin')
@@ -84,24 +143,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       return userData
     } catch (error) {
-      throw new Error('Giriş işlemi başarısız oldu')
+      const errorMessage = error instanceof Error 
+        ? error.message 
+        : 'Giriş işlemi başarısız oldu'
+      toast.error(errorMessage)
+      throw new Error(errorMessage)
     } finally {
       setIsLoading(false)
-    }
-  }
-
-  const updateUser = async (userData: Partial<User>) => {
-    try {
-      const endpoint = user?.type === 'admin' 
-        ? '/api/Admin/UpdateProfile' 
-        : '/api/Customer/UpdateProfile'
-
-      const response = await axiosInstance.put(endpoint, userData)
-      const updatedUser = { ...user, ...response.data }
-      setUser(updatedUser)
-      localStorage.setItem('UserData', JSON.stringify(updatedUser))
-    } catch (error) {
-      throw new Error('Profil güncellenirken bir hata oluştu')
     }
   }
 
@@ -123,20 +171,33 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             username: userData.username,
             mail: userData.email,
             password: userData.password,
-            budget: randomBudget
+            budget: randomBudget,
+            type: 'Normal' as CustomerType,
+            totalSpent: 0
           }
 
-      await axiosInstance.post(endpoint, registerData)
+      const response = await axiosInstance.post(endpoint, registerData)
+      
+      if (!response.data.response.success) {
+        throw new Error(response.data.response.message || 'Kayıt işlemi başarısız oldu')
+      }
+
+      toast.success('Kayıt işlemi başarılı! Giriş yapabilirsiniz.')
     } catch (error) {
-      throw new Error('Kayıt işlemi başarısız oldu')
+      const errorMessage = error instanceof Error 
+        ? error.message 
+        : 'Kayıt işlemi başarısız oldu'
+      toast.error(errorMessage)
+      throw new Error(errorMessage)
     }
   }
 
   const logout = () => {
     localStorage.removeItem('AccessToken')
-    localStorage.removeItem('UserType')
     localStorage.removeItem('UserData')
+    delete axiosInstance.defaults.headers.common['Authorization']
     setUser(null)
+    setIsAuthenticated(false)
     navigate('/auth')
   }
 
@@ -147,8 +208,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       isLoading,
       login,
       register,
-      logout,
-      updateUser
+      logout
     }}>
       {children}
     </AuthContext.Provider>

@@ -6,7 +6,7 @@ import {
   ShoppingCart,
   Store,
   CreditCard,
-  UserCircle2
+  ShoppingBag
 } from 'lucide-react'
 import Swal from 'sweetalert2'
 
@@ -15,40 +15,40 @@ interface SidebarProps {
 }
 
 const menuItems = [
-  { 
-    title: 'Ana Sayfa', 
+  {
+    title: 'Ana Sayfa',
     path: '/customer/home', 
     icon: LayoutDashboard,
     gradient: 'from-sky-400 to-blue-600',
     hoverBg: 'hover:bg-blue-50 dark:hover:bg-blue-900/20'
   },
-  { 
-    title: 'Siparişlerim', 
+  {
+    title: 'Siparişlerim',
     path: '/customer/orders', 
     icon: ShoppingCart,
     gradient: 'from-violet-400 to-purple-600',
     hoverBg: 'hover:bg-purple-50 dark:hover:bg-purple-900/20'
   },
-  { 
+  {
     title: 'Ürünler', 
     path: '/customer/products', 
     icon: Store,
     gradient: 'from-emerald-400 to-green-600',
     hoverBg: 'hover:bg-green-50 dark:hover:bg-green-900/20'
   },
-  { 
+  {
+    title: 'Sepetim',
+    path: '/customer/cart',
+    icon: ShoppingBag,
+    gradient: 'from-pink-400 to-rose-600',
+    hoverBg: 'hover:bg-rose-50 dark:hover:bg-rose-900/20'
+  },
+  {
     title: 'Cüzdan', 
     path: '/customer/wallet', 
     icon: CreditCard,
     gradient: 'from-amber-400 to-orange-600',
     hoverBg: 'hover:bg-orange-50 dark:hover:bg-orange-900/20'
-  },
-  { 
-    title: 'Profil', 
-    path: '/customer/profile', 
-    icon: UserCircle2,
-    gradient: 'from-pink-400 to-rose-600',
-    hoverBg: 'hover:bg-rose-50 dark:hover:bg-rose-900/20'
   }
 ]
 
@@ -84,6 +84,7 @@ const Sidebar = ({ isOpen }: SidebarProps) => {
       })
     }
   }
+
   return (
     <aside 
       className={`fixed lg:sticky top-0 left-0 z-50 h-screen bg-white/90 dark:bg-gray-900/90 backdrop-blur-xl shadow-lg border-r border-gray-200/30 dark:border-gray-800/30 transition-all duration-300 ease-in-out ${
@@ -98,7 +99,7 @@ const Sidebar = ({ isOpen }: SidebarProps) => {
             {isOpen ? 'SmartSync' : 'SS'}
           </h1>
         </div>
-  
+
         <nav className="flex-1 px-2 py-4 space-y-1 overflow-y-auto">
           {menuItems.map((item) => {
             const isActive = location.pathname === item.path
@@ -129,7 +130,7 @@ const Sidebar = ({ isOpen }: SidebarProps) => {
             )
           })}
         </nav>
-  
+
         <div className="p-4 border-t border-gray-200/30 dark:border-gray-800/30">
           <button
             onClick={handleLogout}
