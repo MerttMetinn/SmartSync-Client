@@ -7,21 +7,28 @@ import { Package2, Clock, AlertCircle, CheckCircle2, RefreshCcw } from 'lucide-r
 import axiosInstance from '@/contexts/axiosInstance'
 import { AxiosError } from 'axios'
 
+enum OrderStatus {
+  Pending = 0,
+  Processing = 1,
+  Completed = 2,
+  Error = 3
+}
+
 interface Order {
   id: string
+  customerId: string
+  status: number
+  price: number
   customer: {
     username: string
     type: 'Normal' | 'Premium'
     budget: number
     totalSpent: number
-  }
-  totalAmount: number
-  status: 'Pending' | 'Processing' | 'Completed'
-  products: {
-    name: string
+  } | null
+  orderProducts: {
+    productId: string
     quantity: number
-    price: number
-  }[]
+  }[] | null
   createdDate: string
 }
 
@@ -39,14 +46,13 @@ const OrdersPage = () => {
   const [selectedStatus, setSelectedStatus] = useState<string>('all')
   const [isProcessing, setIsProcessing] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
+  const [pollingInterval, setPollingInterval] = useState<NodeJS.Timeout | null>(null)
 
   const fetchOrders = async () => {
-    setIsLoading(true)
     try {
       const response = await axiosInstance.get<ApiResponse>('/api/Order/GetOrders')
       if (response.data.response.success) {
         setOrders(response.data.orders)
-        toast.success('Siparişler başarıyla yüklendi')
       } else {
         toast.error(response.data.response.message)
       }
@@ -60,13 +66,27 @@ const OrdersPage = () => {
     }
   }
 
+  const startPolling = () => {
+    // Her 2 saniyede bir siparişleri güncelle
+    const interval = setInterval(fetchOrders, 2000)
+    setPollingInterval(interval)
+  }
+
+  const stopPolling = () => {
+    if (pollingInterval) {
+      clearInterval(pollingInterval)
+      setPollingInterval(null)
+    }
+  }
+
   const handleProcessOrders = async () => {
     setIsProcessing(true)
     try {
       const response = await axiosInstance.post<ApiResponse>('/api/Order/ProcessOrders')
       if (response.data.response.success) {
-        await fetchOrders() // Siparişleri yeniden yükle
-        toast.success('Siparişler başarıyla işleme alındı')
+        toast.success('Siparişler işleme alındı')
+        // Polling'i başlat
+        startPolling()
       } else {
         toast.error(response.data.response.message)
       }
@@ -82,9 +102,51 @@ const OrdersPage = () => {
 
   useEffect(() => {
     fetchOrders()
+
+    // Component unmount olduğunda polling'i durdur
+    return () => {
+      stopPolling()
+    }
   }, [])
 
-  const getStatusCount = (status: string) => {
+  // Bekleyen sipariş kalmadığında polling'i durdur
+  useEffect(() => {
+    if (!orders.some(order => order.status === OrderStatus.Processing)) {
+      stopPolling()
+    }
+  }, [orders])
+
+  const getStatusText = (status: number) => {
+    switch (status) {
+      case OrderStatus.Pending:
+        return 'Beklemede'
+      case OrderStatus.Processing:
+        return 'İşleniyor'
+      case OrderStatus.Completed:
+        return 'Tamamlandı'
+      case OrderStatus.Error:
+        return 'Hata'
+      default:
+        return 'Bilinmiyor'
+    }
+  }
+
+  const getStatusColor = (status: number) => {
+    switch (status) {
+      case OrderStatus.Pending:
+        return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400'
+      case OrderStatus.Processing:
+        return 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400'
+      case OrderStatus.Completed:
+        return 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
+      case OrderStatus.Error:
+        return 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'
+      default:
+        return 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400'
+    }
+  }
+
+  const getStatusCount = (status: OrderStatus) => {
     return orders.filter(order => order.status === status).length
   }
 
@@ -98,21 +160,21 @@ const OrdersPage = () => {
     },
     {
       title: 'Bekleyen',
-      count: getStatusCount('Pending'),
+      count: getStatusCount(OrderStatus.Pending),
       icon: Clock,
       color: 'text-yellow-600',
       bgColor: 'bg-yellow-100 dark:bg-yellow-900/20'
     },
     {
       title: 'İşleniyor',
-      count: getStatusCount('Processing'),
+      count: getStatusCount(OrderStatus.Processing),
       icon: AlertCircle,
       color: 'text-purple-600',
       bgColor: 'bg-purple-100 dark:bg-purple-900/20'
     },
     {
       title: 'Tamamlanan',
-      count: getStatusCount('Completed'),
+      count: getStatusCount(OrderStatus.Completed),
       icon: CheckCircle2,
       color: 'text-green-600',
       bgColor: 'bg-green-100 dark:bg-green-900/20'
@@ -121,7 +183,7 @@ const OrdersPage = () => {
 
   const filteredOrders = selectedStatus === 'all' 
     ? orders 
-    : orders.filter(order => order.status === selectedStatus)
+    : orders.filter(order => order.status.toString() === selectedStatus)
 
   if (isLoading) {
     return (
@@ -180,27 +242,33 @@ const OrdersPage = () => {
             Tümü
           </Button>
           <Button
-            variant={selectedStatus === 'Pending' ? 'default' : 'outline'}
-            onClick={() => setSelectedStatus('Pending')}
+            variant={selectedStatus === OrderStatus.Pending.toString() ? 'default' : 'outline'}
+            onClick={() => setSelectedStatus(OrderStatus.Pending.toString())}
           >
             Bekleyen
           </Button>
           <Button
-            variant={selectedStatus === 'Processing' ? 'default' : 'outline'}
-            onClick={() => setSelectedStatus('Processing')}
+            variant={selectedStatus === OrderStatus.Processing.toString() ? 'default' : 'outline'}
+            onClick={() => setSelectedStatus(OrderStatus.Processing.toString())}
           >
             İşleniyor
           </Button>
           <Button
-            variant={selectedStatus === 'Completed' ? 'default' : 'outline'}
-            onClick={() => setSelectedStatus('Completed')}
+            variant={selectedStatus === OrderStatus.Completed.toString() ? 'default' : 'outline'}
+            onClick={() => setSelectedStatus(OrderStatus.Completed.toString())}
           >
             Tamamlanan
+          </Button>
+          <Button
+            variant={selectedStatus === OrderStatus.Error.toString() ? 'default' : 'outline'}
+            onClick={() => setSelectedStatus(OrderStatus.Error.toString())}
+          >
+            Hatalı
           </Button>
         </div>
 
         <Button
-          disabled={isProcessing || !orders.some(order => order.status === 'Pending')}
+          disabled={isProcessing || !orders.some(order => order.status === OrderStatus.Pending)}
           onClick={handleProcessOrders}
           className="bg-blue-600 hover:bg-blue-700 text-white"
         >
@@ -215,9 +283,8 @@ const OrdersPage = () => {
             <thead>
               <tr className="border-b border-gray-200 dark:border-gray-700">
                 <th className="text-left py-3 px-4 text-sm font-medium text-gray-600 dark:text-gray-300">Sipariş No</th>
-                <th className="text-left py-3 px-4 text-sm font-medium text-gray-600 dark:text-gray-300">Müşteri</th>
+                <th className="text-left py-3 px-4 text-sm font-medium text-gray-600 dark:text-gray-300">Müşteri ID</th>
                 <th className="text-left py-3 px-4 text-sm font-medium text-gray-600 dark:text-gray-300">Tutar</th>
-                <th className="text-left py-3 px-4 text-sm font-medium text-gray-600 dark:text-gray-300">Müşteri Tipi</th>
                 <th className="text-left py-3 px-4 text-sm font-medium text-gray-600 dark:text-gray-300">Durum</th>
                 <th className="text-left py-3 px-4 text-sm font-medium text-gray-600 dark:text-gray-300">Tarih</th>
               </tr>
@@ -234,33 +301,14 @@ const OrdersPage = () => {
                     #{order.id}
                   </td>
                   <td className="py-3 px-4 text-sm text-gray-900 dark:text-white">
-                    {order.customer.username}
+                    {order.customerId}
                   </td>
                   <td className="py-3 px-4 text-sm text-gray-900 dark:text-white">
-                    {order.totalAmount.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}
+                    {order.price.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}
                   </td>
                   <td className="py-3 px-4">
-                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
-                      ${order.customer.type === 'Premium'
-                        ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
-                        : 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300'
-                      }`}
-                    >
-                      {order.customer.type}
-                    </span>
-                  </td>
-                  <td className="py-3 px-4">
-                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
-                      ${order.status === 'Pending'
-                        ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400'
-                        : order.status === 'Processing'
-                        ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400'
-                        : 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
-                      }`}
-                    >
-                      {order.status === 'Pending' ? 'Beklemede'
-                        : order.status === 'Processing' ? 'İşleniyor'
-                        : 'Tamamlandı'}
+                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(order.status)}`}>
+                      {getStatusText(order.status)}
                     </span>
                   </td>
                   <td className="py-3 px-4 text-sm text-gray-900 dark:text-white">

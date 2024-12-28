@@ -30,7 +30,7 @@ interface ApiResponse {
 
 export function ProductsPage() {
   const { user } = useAuth()
-  const { addToCart } = useCart()
+  const { addItem } = useCart()
   const [products, setProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
   const [quantities, setQuantities] = useState<{ [key: string]: number }>({})
@@ -95,7 +95,12 @@ export function ProductsPage() {
 
   const handleAddToCart = (product: Product) => {
     const quantity = quantities[product.id] || 1
-    addToCart(product, quantity)
+    addItem({
+      productId: product.id,
+      productName: product.name,
+      quantity: quantity,
+      price: product.price
+    })
     toast.success('Ürün sepete eklendi')
   }
 
@@ -109,28 +114,35 @@ export function ProductsPage() {
 
   return (
     <div className="space-y-6">
-      {/* Başlık ve Bakiye */}
-      <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">
-          Ürünler
-        </h1>
-        <div className="bg-gradient-to-r from-blue-500/10 to-purple-500/10 dark:from-blue-500/20 dark:to-purple-500/20 px-4 py-2 rounded-full">
-          <span className="text-sm font-medium text-gray-900 dark:text-white">
-            Bakiye: ₺{user?.budget?.toFixed(2) || '0.00'}
-          </span>
+      {/* Başlık ve Özet Bilgiler */}
+      <div className="flex flex-col md:flex-row justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">
+            Ürün Kataloğu
+          </h1>
+          <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+            {products.length} ürün listeleniyor
+          </p>
+        </div>
+        <div className="flex flex-col gap-2">
+          <div className="bg-gradient-to-r from-blue-500/10 to-purple-500/10 dark:from-blue-500/20 dark:to-purple-500/20 px-4 py-2 rounded-full">
+            <span className="text-sm font-medium text-gray-900 dark:text-white">
+              Mevcut Bakiye: ₺{user?.budget?.toFixed(2) || '0.00'}
+            </span>
+          </div>
         </div>
       </div>
 
       {products.length === 0 ? (
-        <Card className="p-6 text-center">
+        <Card className="p-8 text-center">
           <div className="flex flex-col items-center gap-4">
-            <Store className="h-12 w-12 text-gray-400" />
-            <div className="space-y-1">
-              <h3 className="text-lg font-medium text-gray-900 dark:text-white">
+            <Store className="h-16 w-16 text-gray-400" />
+            <div className="space-y-2">
+              <h3 className="text-xl font-medium text-gray-900 dark:text-white">
                 Henüz Ürün Bulunmuyor
               </h3>
-              <p className="text-sm text-gray-600 dark:text-gray-400">
-                Yakında yeni ürünler eklenecektir.
+              <p className="text-gray-600 dark:text-gray-400 max-w-md mx-auto">
+                Şu anda mağazamızda listelenmiş ürün bulunmuyor. Lütfen daha sonra tekrar kontrol edin.
               </p>
             </div>
           </div>
@@ -138,35 +150,67 @@ export function ProductsPage() {
       ) : (
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {products.map((product) => (
-            <Card key={product.id} className="overflow-hidden">
+            <Card key={product.id} className="overflow-hidden group hover:shadow-lg transition-shadow duration-200">
               <div className="p-6 space-y-4">
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                  {product.name}
-                </h3>
                 <div className="space-y-2">
-                  <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                    ₺{product.price.toFixed(2)}
-                  </p>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">
-                    Stok: {product.stock}
-                  </p>
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white group-hover:text-primary transition-colors">
+                    {product.name}
+                  </h3>
+                  <div className="flex items-center justify-between">
+                    <p className="text-2xl font-bold text-primary">
+                      ₺{product.price.toFixed(2)}
+                    </p>
+                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                      product.stock > 0 
+                        ? 'bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-400'
+                        : 'bg-red-100 text-red-700 dark:bg-red-900/20 dark:text-red-400'
+                    }`}>
+                      {product.stock > 0 ? `${product.stock} adet stokta` : 'Stokta yok'}
+                    </span>
+                  </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <Input
-                    type="number"
-                    min="1"
-                    max="5"
-                    value={quantities[product.id] || 1}
-                    onChange={(e) => handleQuantityChange(product.id, e.target.value)}
-                    className="w-20"
-                  />
-                  <Button 
-                    onClick={() => handleAddToCart(product)}
-                    disabled={product.stock === 0}
-                    className="flex-1"
-                  >
-                    Sepete Ekle
-                  </Button>
+                
+                <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
+                  <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-1">
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={() => handleQuantityChange(product.id, String(Math.max(1, quantities[product.id] - 1 || 0)))}
+                        disabled={product.stock === 0 || quantities[product.id] <= 1}
+                      >
+                        -
+                      </Button>
+                      <Input
+                        type="number"
+                        min="1"
+                        max="5"
+                        value={quantities[product.id] || 1}
+                        onChange={(e) => handleQuantityChange(product.id, e.target.value)}
+                        className="w-16 text-center"
+                      />
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={() => handleQuantityChange(product.id, String(Math.min(5, (quantities[product.id] || 1) + 1)))}
+                        disabled={product.stock === 0 || quantities[product.id] >= 5}
+                      >
+                        +
+                      </Button>
+                    </div>
+                    <Button 
+                      onClick={() => handleAddToCart(product)}
+                      disabled={product.stock === 0}
+                      className="flex-1"
+                    >
+                      {product.stock === 0 ? 'Stokta Yok' : 'Sepete Ekle'}
+                    </Button>
+                  </div>
+                  {product.stock > 0 && (
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-2 text-center">
+                      Maksimum 5 adet satın alabilirsiniz
+                    </p>
+                  )}
                 </div>
               </div>
             </Card>

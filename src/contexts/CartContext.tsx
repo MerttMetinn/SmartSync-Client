@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState } from 'react'
+import React, { createContext, useContext, useEffect, useState, useCallback } from 'react'
 import { useAuth } from './AuthContext'
 import axiosInstance from './axiosInstance'
 import { toast } from 'react-toastify'
@@ -25,58 +25,58 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   const [items, setItems] = useState<CartItem[]>([])
   const { user, isAuthenticated } = useAuth()
 
-  useEffect(() => {
-    if (isAuthenticated && user?.type === 'customer') {
-      loadCart()
-    }
-  }, [isAuthenticated, user])
-
-  const loadCart = async () => {
+  const loadCart = useCallback(async () => {
     try {
-      const response = await axiosInstance.get('/api/Cart')
+      const response = await axiosInstance.get('/api/Cart/GetCart')
       if (response.data.response.success) {
-        setItems(response.data.cart.items)
+        setItems(response.data.cart.items || [])
       }
     } catch {
       toast.error('Sepet yüklenirken bir hata oluştu')
     }
-  }
+  }, [])
+
+  useEffect(() => {
+    if (isAuthenticated && user?.type === 'customer') {
+      loadCart()
+    }
+  }, [isAuthenticated, user, loadCart])
 
   const saveCart = async (newItems: CartItem[]) => {
     try {
-      await axiosInstance.post('/api/Cart', newItems)
-    } catch {
+      const response = await axiosInstance.post('/api/Cart/UpdateCart', newItems)
+      if (!response.data.response.success) {
+        throw new Error(response.data.response.message || 'Sepet kaydedilirken bir hata oluştu')
+      }
+    } catch (error) {
+      console.error('Sepet kaydetme hatası:', error)
       toast.error('Sepet kaydedilirken bir hata oluştu')
+      await loadCart() // Hata durumunda sepeti yeniden yükle
     }
   }
 
   const addItem = (item: CartItem) => {
-    setItems(currentItems => {
-      const existingItem = currentItems.find(i => i.productId === item.productId)
-      let newItems: CartItem[]
+    const existingItem = items.find(i => i.productId === item.productId)
+    let newItems: CartItem[]
 
-      if (existingItem) {
-        const newQuantity = Math.min(existingItem.quantity + item.quantity, 5)
-        newItems = currentItems.map(i =>
-          i.productId === item.productId
-            ? { ...i, quantity: newQuantity }
-            : i
-        )
-      } else {
-        newItems = [...currentItems, { ...item, quantity: Math.min(item.quantity, 5) }]
-      }
+    if (existingItem) {
+      newItems = items.map(i =>
+        i.productId === item.productId
+          ? { ...item, quantity: Math.min(existingItem.quantity + item.quantity, 5) }
+          : i
+      )
+    } else {
+      newItems = [...items, { ...item, quantity: Math.min(item.quantity, 5) }]
+    }
 
-      saveCart(newItems)
-      return newItems
-    })
+    setItems(newItems)
+    saveCart(newItems)
   }
 
   const removeItem = (productId: string) => {
-    setItems(currentItems => {
-      const newItems = currentItems.filter(item => item.productId !== productId)
-      saveCart(newItems)
-      return newItems
-    })
+    const newItems = items.filter(item => item.productId !== productId)
+    setItems(newItems)
+    saveCart(newItems)
   }
 
   const updateQuantity = (productId: string, quantity: number) => {
@@ -85,15 +85,13 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       quantity = 5
     }
 
-    setItems(currentItems => {
-      const newItems = currentItems.map(item =>
-        item.productId === productId
-          ? { ...item, quantity }
-          : item
-      )
-      saveCart(newItems)
-      return newItems
-    })
+    const newItems = items.map(item =>
+      item.productId === productId
+        ? { ...item, quantity }
+        : item
+    )
+    setItems(newItems)
+    saveCart(newItems)
   }
 
   const clearCart = () => {
