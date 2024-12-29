@@ -20,10 +20,36 @@ const CartPage = () => {
   const { items, removeItem, updateQuantity, totalAmount, clearCart } = useCart()
   const { user } = useAuth()
 
-  const handleQuantityChange = (productId: string, value: string) => {
+  const handleQuantityChange = async (productId: string, value: string) => {
     const quantity = parseInt(value)
     if (isNaN(quantity) || quantity < 1) return
-    updateQuantity(productId, quantity)
+
+    try {
+        // Ürün bilgisini al - endpoint düzeltildi
+        const response = await axiosInstance.get(`/api/Product/GetProductById?Id=${productId}`);
+        
+        if (!response.data.response.success) {
+            toast.error('Ürün bulunamadı');
+            return;
+        }
+
+        const product = response.data.product;
+
+        if (quantity > product.stock) {
+            toast.error('Yetersiz stok!');
+            return;
+        }
+
+        if (quantity > 5) {
+            toast.warning('Bir üründen en fazla 5 adet ekleyebilirsiniz');
+            return;
+        }
+
+        updateQuantity(productId, quantity);
+    } catch (error: unknown) {
+        console.error('Ürün bilgisi alınamadı:', error);
+        toast.error('Ürün bilgisi alınamadı');
+    }
   }
 
   const handleCheckout = async () => {
@@ -38,14 +64,15 @@ const CartPage = () => {
     }
 
     try {
-      const orderItems = items.map(item => ({
-        productId: item.productId,
-        quantity: item.quantity
-      }))
+      const orderRequest = {
+        price: totalAmount,
+        products: items.map(item => ({
+          productId: item.productId,
+          quantity: item.quantity
+        }))
+      }
 
-      const response = await axiosInstance.post<ApiResponse<void>>('/api/Order/CreateOrder', {
-        items: orderItems
-      })
+      const response = await axiosInstance.post<ApiResponse<void>>('/api/Order/CreateOrder', orderRequest)
 
       if (response.data.response.success) {
         toast.success('Siparişiniz başarıyla oluşturuldu')

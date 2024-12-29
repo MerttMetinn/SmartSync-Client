@@ -30,7 +30,7 @@ interface ApiResponse {
 
 export function ProductsPage() {
   const { user } = useAuth()
-  const { addItem } = useCart()
+  const { addItem, items } = useCart()
   const [products, setProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
   const [quantities, setQuantities] = useState<{ [key: string]: number }>({})
@@ -93,16 +93,30 @@ export function ProductsPage() {
     }))
   }
 
-  const handleAddToCart = (product: Product) => {
-    const quantity = quantities[product.id] || 1
+  const handleAddToCart = async (product: Product) => {
+    const currentCartItem = items.find(item => item.productId === product.id);
+    const currentQuantity = currentCartItem?.quantity || 0;
+    const newQuantity = currentQuantity + 1;
+
+    if (newQuantity > product.stock) {
+        toast.error('Yetersiz stok!');
+        return;
+    }
+
+    if (newQuantity > 5) {
+        toast.warning('Bir üründen en fazla 5 adet ekleyebilirsiniz');
+        return;
+    }
+
     addItem({
-      productId: product.id,
-      productName: product.name,
-      quantity: quantity,
-      price: product.price
-    })
-    toast.success('Ürün sepete eklendi')
-  }
+        productId: product.id,
+        productName: product.name,
+        quantity: 1,
+        price: product.price
+    });
+
+    toast.success(`${product.name} sepete eklendi`);
+  };
 
   if (loading) {
     return (
