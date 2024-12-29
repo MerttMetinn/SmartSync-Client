@@ -182,7 +182,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         throw new Error(response.data.response.message || 'Kayıt işlemi başarısız oldu')
       }
 
-      toast.success('Kayıt işlemi başarılı! Giriş yapabilirsiniz.')
+      return response.data
     } catch (error) {
       const errorMessage = error instanceof Error 
         ? error.message 

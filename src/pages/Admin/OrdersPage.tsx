@@ -9,9 +9,13 @@ import { AxiosError } from 'axios'
 
 enum OrderStatus {
   Pending = 0,
-  Processing = 1,
-  Completed = 2,
-  Error = 3
+  QueuedForProcessing = 1,
+  ValidatingOrder = 2,
+  CheckingStock = 3,
+  ProcessingPayment = 4,
+  UpdatingInventory = 5,
+  Completed = 6,
+  Error = 7
 }
 
 interface Order {
@@ -43,7 +47,7 @@ interface ApiResponse {
 
 const OrdersPage = () => {
   const [orders, setOrders] = useState<Order[]>([])
-  const [selectedStatus, setSelectedStatus] = useState<string>('all')
+  const [selectedStatus, setSelectedStatus] = useState<number | 'all'>('all')
   const [isProcessing, setIsProcessing] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const [pollingInterval, setPollingInterval] = useState<NodeJS.Timeout | null>(null)
@@ -67,8 +71,8 @@ const OrdersPage = () => {
   }
 
   const startPolling = () => {
-    // Her 2 saniyede bir siparişleri güncelle
-    const interval = setInterval(fetchOrders, 2000)
+    // Her 500ms'de bir siparişleri güncelle (daha sık güncelleme için)
+    const interval = setInterval(fetchOrders, 500)
     setPollingInterval(interval)
   }
 
@@ -82,10 +86,13 @@ const OrdersPage = () => {
   const handleProcessOrders = async () => {
     setIsProcessing(true)
     try {
-      const response = await axiosInstance.post<ApiResponse>('/api/Order/ProcessOrders')
+      const response = await axiosInstance.post<ApiResponse>('/api/Order/ProcessOrders', {}, {
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      })
       if (response.data.response.success) {
         toast.success('Siparişler işleme alındı')
-        // Polling'i başlat
         startPolling()
       } else {
         toast.error(response.data.response.message)
@@ -111,17 +118,33 @@ const OrdersPage = () => {
 
   // Bekleyen sipariş kalmadığında polling'i durdur
   useEffect(() => {
-    if (!orders.some(order => order.status === OrderStatus.Processing)) {
+    if (!orders.some(order => 
+      order.status > OrderStatus.Pending && 
+      order.status < OrderStatus.Completed
+    )) {
       stopPolling()
+    } else {
+      // Eğer işlenen sipariş varsa ve polling aktif değilse, polling'i başlat
+      if (!pollingInterval) {
+        startPolling()
+      }
     }
-  }, [orders])
+  }, [orders, pollingInterval])
 
   const getStatusText = (status: number) => {
     switch (status) {
       case OrderStatus.Pending:
         return 'Beklemede'
-      case OrderStatus.Processing:
-        return 'İşleniyor'
+      case OrderStatus.QueuedForProcessing:
+        return 'Sıraya Alındı'
+      case OrderStatus.ValidatingOrder:
+        return 'Doğrulanıyor'
+      case OrderStatus.CheckingStock:
+        return 'Stok Kontrolü'
+      case OrderStatus.ProcessingPayment:
+        return 'Ödeme İşleniyor'
+      case OrderStatus.UpdatingInventory:
+        return 'Stok Güncelleniyor'
       case OrderStatus.Completed:
         return 'Tamamlandı'
       case OrderStatus.Error:
@@ -135,14 +158,45 @@ const OrdersPage = () => {
     switch (status) {
       case OrderStatus.Pending:
         return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400'
-      case OrderStatus.Processing:
+      case OrderStatus.QueuedForProcessing:
         return 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400'
+      case OrderStatus.ValidatingOrder:
+        return 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400'
+      case OrderStatus.CheckingStock:
+        return 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-400'
+      case OrderStatus.ProcessingPayment:
+        return 'bg-pink-100 text-pink-800 dark:bg-pink-900/30 dark:text-pink-400'
+      case OrderStatus.UpdatingInventory:
+        return 'bg-cyan-100 text-cyan-800 dark:bg-cyan-900/30 dark:text-cyan-400'
       case OrderStatus.Completed:
         return 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
       case OrderStatus.Error:
         return 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'
       default:
         return 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400'
+    }
+  }
+
+  const getProgressPercentage = (status: number) => {
+    switch (status) {
+      case OrderStatus.Pending:
+        return 0
+      case OrderStatus.QueuedForProcessing:
+        return 16.66
+      case OrderStatus.ValidatingOrder:
+        return 33.33
+      case OrderStatus.CheckingStock:
+        return 50
+      case OrderStatus.ProcessingPayment:
+        return 66.66
+      case OrderStatus.UpdatingInventory:
+        return 83.33
+      case OrderStatus.Completed:
+        return 100
+      case OrderStatus.Error:
+        return 100
+      default:
+        return 0
     }
   }
 
@@ -167,7 +221,10 @@ const OrdersPage = () => {
     },
     {
       title: 'İşleniyor',
-      count: getStatusCount(OrderStatus.Processing),
+      count: orders.filter(order => 
+        order.status > OrderStatus.Pending && 
+        order.status < OrderStatus.Completed
+      ).length,
       icon: AlertCircle,
       color: 'text-purple-600',
       bgColor: 'bg-purple-100 dark:bg-purple-900/20'
@@ -181,9 +238,9 @@ const OrdersPage = () => {
     }
   ]
 
-  const filteredOrders = selectedStatus === 'all' 
-    ? orders 
-    : orders.filter(order => order.status.toString() === selectedStatus)
+  const filteredOrders = selectedStatus === 'all'
+    ? orders
+    : orders.filter(order => order.status === selectedStatus)
 
   if (isLoading) {
     return (
@@ -242,26 +299,50 @@ const OrdersPage = () => {
             Tümü
           </Button>
           <Button
-            variant={selectedStatus === OrderStatus.Pending.toString() ? 'default' : 'outline'}
-            onClick={() => setSelectedStatus(OrderStatus.Pending.toString())}
+            variant={selectedStatus === OrderStatus.Pending ? 'default' : 'outline'}
+            onClick={() => setSelectedStatus(OrderStatus.Pending)}
           >
             Bekleyen
           </Button>
           <Button
-            variant={selectedStatus === OrderStatus.Processing.toString() ? 'default' : 'outline'}
-            onClick={() => setSelectedStatus(OrderStatus.Processing.toString())}
+            variant={selectedStatus === OrderStatus.QueuedForProcessing ? 'default' : 'outline'}
+            onClick={() => setSelectedStatus(OrderStatus.QueuedForProcessing)}
           >
-            İşleniyor
+            Sıraya Alındı
           </Button>
           <Button
-            variant={selectedStatus === OrderStatus.Completed.toString() ? 'default' : 'outline'}
-            onClick={() => setSelectedStatus(OrderStatus.Completed.toString())}
+            variant={selectedStatus === OrderStatus.ValidatingOrder ? 'default' : 'outline'}
+            onClick={() => setSelectedStatus(OrderStatus.ValidatingOrder)}
           >
-            Tamamlanan
+            Doğrulanıyor
           </Button>
           <Button
-            variant={selectedStatus === OrderStatus.Error.toString() ? 'default' : 'outline'}
-            onClick={() => setSelectedStatus(OrderStatus.Error.toString())}
+            variant={selectedStatus === OrderStatus.CheckingStock ? 'default' : 'outline'}
+            onClick={() => setSelectedStatus(OrderStatus.CheckingStock)}
+          >
+            Stok Kontrolü
+          </Button>
+          <Button
+            variant={selectedStatus === OrderStatus.ProcessingPayment ? 'default' : 'outline'}
+            onClick={() => setSelectedStatus(OrderStatus.ProcessingPayment)}
+          >
+            Ödeme İşleniyor
+          </Button>
+          <Button
+            variant={selectedStatus === OrderStatus.UpdatingInventory ? 'default' : 'outline'}
+            onClick={() => setSelectedStatus(OrderStatus.UpdatingInventory)}
+          >
+            Stok Güncelleniyor
+          </Button>
+          <Button
+            variant={selectedStatus === OrderStatus.Completed ? 'default' : 'outline'}
+            onClick={() => setSelectedStatus(OrderStatus.Completed)}
+          >
+            Tamamlandı
+          </Button>
+          <Button
+            variant={selectedStatus === OrderStatus.Error ? 'default' : 'outline'}
+            onClick={() => setSelectedStatus(OrderStatus.Error)}
           >
             Hatalı
           </Button>
@@ -293,9 +374,14 @@ const OrdersPage = () => {
               {filteredOrders.map((order) => (
                 <motion.tr
                   key={order.id}
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  className="border-b border-gray-200 dark:border-gray-700"
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.3 }}
+                  className={`border-b border-gray-200 dark:border-gray-700 ${
+                    order.status > OrderStatus.Pending && order.status < OrderStatus.Completed
+                      ? 'bg-blue-50/50 dark:bg-blue-900/10'
+                      : ''
+                  }`}
                 >
                   <td className="py-3 px-4 text-sm text-gray-900 dark:text-white">
                     #{order.id}
@@ -307,9 +393,37 @@ const OrdersPage = () => {
                     {order.price.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}
                   </td>
                   <td className="py-3 px-4">
-                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(order.status)}`}>
-                      {getStatusText(order.status)}
-                    </span>
+                    <div className="flex flex-col gap-2">
+                      <motion.span
+                        initial={false}
+                        animate={{
+                          backgroundColor: getStatusColor(order.status).includes('bg-') 
+                            ? getStatusColor(order.status).split(' ')[0] 
+                            : undefined
+                        }}
+                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(order.status)}`}
+                      >
+                        {getStatusText(order.status)}
+                      </motion.span>
+                      {order.status !== OrderStatus.Pending && order.status !== OrderStatus.Completed && order.status !== OrderStatus.Error && (
+                        <div className="relative w-full h-3">
+                          <div className="absolute w-full h-full bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                            <motion.div
+                              className="h-full bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500"
+                              initial={false}
+                              animate={{ 
+                                width: `${getProgressPercentage(order.status)}%`,
+                                transition: { duration: 0.3, ease: "easeInOut" }
+                              }}
+                            />
+                          </div>
+                          <div className="absolute w-full h-full rounded-full opacity-20 animate-pulse bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500" />
+                          <div className="absolute -right-7 -top-1 text-xs font-medium text-gray-600 dark:text-gray-300">
+                            {Math.round(getProgressPercentage(order.status))}%
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   </td>
                   <td className="py-3 px-4 text-sm text-gray-900 dark:text-white">
                     {new Date(order.createdDate).toLocaleString('tr-TR')}
