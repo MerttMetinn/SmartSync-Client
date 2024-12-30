@@ -316,7 +316,7 @@ const ProductsPage = () => {
   }
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-6">
       <ToastContainer 
         position="top-right"
         autoClose={3000}
@@ -329,7 +329,7 @@ const ProductsPage = () => {
         pauseOnHover
         theme="light"
       />
-      <div className="flex justify-between items-center mb-6">
+      <div className="flex justify-between items-center mb-4">
         <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">
           Ürünler
         </h1>
@@ -382,24 +382,33 @@ const ProductsPage = () => {
               size="sm"
               onClick={() => handlePageChange(currentPage - 1)}
               disabled={currentPage === 1}
+              className="border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
             >
               Önceki
             </Button>
+            
             {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
               <Button
                 key={page}
                 variant={currentPage === page ? "default" : "outline"}
                 size="sm"
                 onClick={() => handlePageChange(page)}
+                className={
+                  currentPage === page
+                    ? "bg-blue-600 hover:bg-blue-700 text-white"
+                    : "border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
+                }
               >
                 {page}
               </Button>
             ))}
+            
             <Button
               variant="outline"
               size="sm"
               onClick={() => handlePageChange(currentPage + 1)}
               disabled={currentPage === totalPages}
+              className="border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
             >
               Sonraki
             </Button>
@@ -529,128 +538,218 @@ const ProductsPage = () => {
         </DialogContent>
       </Dialog>
 
-      <Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
-        <Table>
-          <TableHeader>
-            <TableRow className="border-gray-200 dark:border-gray-700 hover:bg-transparent">
-              <TableHead 
-                className="text-xs font-medium text-gray-600 dark:text-gray-300 cursor-pointer"
-                onClick={() => handleSortByChange('name')}
-              >
-                <div className="flex items-center gap-2">
-                  Ürün Adı
-                  {sortBy === 'name' && (
-                    <svg className={`h-4 w-4 transition-transform ${sortOrder === 'desc' ? 'transform rotate-180' : ''}`} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
-                    </svg>
-                  )}
-                </div>
-              </TableHead>
-              <TableHead 
-                className="text-xs font-medium text-gray-600 dark:text-gray-300 cursor-pointer"
-                onClick={() => handleSortByChange('price')}
-              >
-                <div className="flex items-center gap-2">
-                  Fiyat
-                  {sortBy === 'price' && (
-                    <svg className={`h-4 w-4 transition-transform ${sortOrder === 'desc' ? 'transform rotate-180' : ''}`} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
-                    </svg>
-                  )}
-                </div>
-              </TableHead>
-              <TableHead 
-                className="text-xs font-medium text-gray-600 dark:text-gray-300 cursor-pointer"
-                onClick={() => handleSortByChange('stock')}
-              >
-                <div className="flex items-center gap-2">
-                  Stok
-                  {sortBy === 'stock' && (
-                    <svg className={`h-4 w-4 transition-transform ${sortOrder === 'desc' ? 'transform rotate-180' : ''}`} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
-                    </svg>
-                  )}
-                </div>
-              </TableHead>
-              <TableHead className="text-xs font-medium text-gray-600 dark:text-gray-300 text-center">İşlemler</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {paginatedProducts.map((product) => (
-              <TableRow 
-                key={product.id} 
-                className="border-gray-200 dark:border-gray-700 hover:bg-gray-50/50 dark:hover:bg-gray-800/50 transition-colors"
-              >
-                <TableCell className="py-3">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center">
-                      <svg className="h-5 w-5 text-gray-500 dark:text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+      <Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 mt-4">
+        <div className="overflow-x-auto">
+          <Table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+            <TableHeader>
+              <TableRow className="bg-gray-50 dark:bg-gray-800/50">
+                <TableHead 
+                  className="w-[40%] px-4 py-4 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800/80 transition-colors group"
+                  onClick={() => handleSortByChange('name')}
+                >
+                  <div className="flex items-center gap-2">
+                    <span>Ürün Adı</span>
+                    <div className={`transition-opacity ${sortBy === 'name' ? 'opacity-100' : 'opacity-0 group-hover:opacity-50'}`}>
+                      <svg className={`h-4 w-4 transition-transform ${sortOrder === 'desc' ? 'transform rotate-180' : ''}`} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
                       </svg>
                     </div>
-                    <div>
-                      <div className="font-medium text-gray-900 dark:text-white">
-                        {product.name}
-                      </div>
-                      <div className="text-sm text-gray-500 dark:text-gray-400">
-                        #{product.id.slice(0, 8)}
-                      </div>
+                  </div>
+                </TableHead>
+                <TableHead 
+                  className="w-[20%] px-4 py-4 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800/80 transition-colors group"
+                  onClick={() => handleSortByChange('price')}
+                >
+                  <div className="flex items-center gap-2">
+                    <span>Fiyat</span>
+                    <div className={`transition-opacity ${sortBy === 'price' ? 'opacity-100' : 'opacity-0 group-hover:opacity-50'}`}>
+                      <svg className={`h-4 w-4 transition-transform ${sortOrder === 'desc' ? 'transform rotate-180' : ''}`} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+                      </svg>
                     </div>
                   </div>
-                </TableCell>
-                <TableCell className="text-gray-900 dark:text-white font-medium">
-                  {product.price.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}
-                </TableCell>
-                <TableCell>
+                </TableHead>
+                <TableHead 
+                  className="w-[20%] px-4 py-4 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800/80 transition-colors group"
+                  onClick={() => handleSortByChange('stock')}
+                >
                   <div className="flex items-center gap-2">
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      className="h-8 w-8 border border-gray-200 dark:border-gray-700 hover:bg-red-50 dark:hover:bg-red-900/30 hover:text-red-600 dark:hover:text-red-400 hover:border-red-300 dark:hover:border-red-700"
-                      onClick={() => handleStockUpdate(product.id, -1)}
-                    >
-                      -
-                    </Button>
-                    <span className="min-w-[40px] text-center font-medium text-gray-900 dark:text-white">
-                      {product.stock}
-                    </span>
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      className="h-8 w-8 border border-gray-200 dark:border-gray-700 hover:bg-green-50 dark:hover:bg-green-900/30 hover:text-green-600 dark:hover:text-green-400 hover:border-green-300 dark:hover:border-green-700"
-                      onClick={() => handleStockUpdate(product.id, 1)}
-                    >
-                      +
-                    </Button>
+                    <span>Stok</span>
+                    <div className={`transition-opacity ${sortBy === 'stock' ? 'opacity-100' : 'opacity-0 group-hover:opacity-50'}`}>
+                      <svg className={`h-4 w-4 transition-transform ${sortOrder === 'desc' ? 'transform rotate-180' : ''}`} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+                      </svg>
+                    </div>
                   </div>
-                </TableCell>
-                <TableCell>
-                  <div className="flex items-center justify-center gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-800 hover:bg-blue-50 dark:hover:bg-blue-900/30 hover:text-blue-700 dark:hover:text-blue-300 hover:border-blue-300 dark:hover:border-blue-700 rounded-md px-4"
-                      onClick={() => {
-                        setEditingProduct(product)
-                        setIsEditDialogOpen(true)
-                      }}
-                    >
-                      Düzenle
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="text-red-600 dark:text-red-400 border border-red-200 dark:border-red-800 hover:bg-red-50 dark:hover:bg-red-900/30 hover:text-red-700 dark:hover:text-red-300 hover:border-red-300 dark:hover:border-red-700 rounded-md px-4"
-                      onClick={() => handleDeleteProduct(product.id)}
-                    >
-                      Sil
-                    </Button>
-                  </div>
-                </TableCell>
+                </TableHead>
+                <TableHead className="w-[20%] px-4 py-4 text-center text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">
+                  İşlemler
+                </TableHead>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+            </TableHeader>
+            <TableBody>
+              {paginatedProducts.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={4} className="text-center py-8">
+                    <div className="text-gray-500 dark:text-gray-400">
+                      {searchQuery ? 'Arama sonucu bulunamadı.' : 'Henüz ürün eklenmemiş.'}
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ) : (
+                paginatedProducts.map((product) => (
+                  <TableRow 
+                    key={product.id} 
+                    className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
+                  >
+                    <TableCell className="w-[40%] px-4 py-3 whitespace-nowrap">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-lg bg-gray-100 dark:bg-gray-700 flex items-center justify-center">
+                          <svg className="h-5 w-5 text-gray-500 dark:text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                          </svg>
+                        </div>
+                        <div>
+                          <div className="font-semibold text-gray-900 dark:text-white text-lg">
+                            {product.name}
+                          </div>
+                          <div className="text-sm text-gray-500 dark:text-gray-400">
+                            #{product.id.slice(0, 8)}
+                          </div>
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell className="w-[20%] px-4 py-3 whitespace-nowrap">
+                      <div className="text-gray-900 dark:text-white font-semibold text-lg">
+                        {product.price.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}
+                      </div>
+                    </TableCell>
+                    <TableCell className="w-[20%] px-4 py-3 whitespace-nowrap">
+                      <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleStockUpdate(product.id, -1)}
+                            disabled={product.stock === 0}
+                            className="h-8 w-8 p-0 flex items-center justify-center"
+                            aria-label="Stok azalt"
+                          >
+                            -
+                          </Button>
+                          <span className="min-w-[3rem] text-center font-medium text-gray-900 dark:text-white">
+                            {product.stock}
+                          </span>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleStockUpdate(product.id, 1)}
+                            className="h-8 w-8 p-0 flex items-center justify-center"
+                            aria-label="Stok arttır"
+                          >
+                            +
+                          </Button>
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell className="w-[20%] px-4 py-3 whitespace-nowrap text-center">
+                      <div className="flex items-center justify-center gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-800 hover:bg-blue-50 dark:hover:bg-blue-900/30"
+                          onClick={() => {
+                            setEditingProduct(product)
+                            setIsEditDialogOpen(true)
+                          }}
+                          aria-label={`${product.name} ürününü düzenle`}
+                        >
+                          Düzenle
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="text-red-600 dark:text-red-400 border border-red-200 dark:border-red-800 hover:bg-red-50 dark:hover:bg-red-900/30"
+                          onClick={() => handleDeleteProduct(product.id)}
+                          aria-label={`${product.name} ürününü sil`}
+                        >
+                          Sil
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </div>
+        <div className="md:hidden space-y-4 mt-4">
+          {paginatedProducts.map((product) => (
+            <Card key={product.id} className="p-4">
+              <div className="flex justify-between items-start">
+                <div>
+                  <h3 className="font-semibold text-lg text-gray-900 dark:text-white">{product.name}</h3>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">#{product.id.slice(0, 8)}</p>
+                </div>
+                <div className="text-right">
+                  <p className="font-semibold text-lg text-gray-900 dark:text-white">
+                    {product.price.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}
+                  </p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Stok: {product.stock}</p>
+                </div>
+              </div>
+              <div className="mt-4 flex justify-between items-center">
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleStockUpdate(product.id, -1)}
+                    disabled={product.stock === 0}
+                    className="h-8 w-8 p-0 flex items-center justify-center"
+                    aria-label="Stok azalt"
+                  >
+                    -
+                  </Button>
+                  <span className="min-w-[3rem] text-center font-medium text-gray-900 dark:text-white">
+                    {product.stock}
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleStockUpdate(product.id, 1)}
+                    className="h-8 w-8 p-0 flex items-center justify-center"
+                    aria-label="Stok arttır"
+                  >
+                    +
+                  </Button>
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-800 hover:bg-blue-50 dark:hover:bg-blue-900/30"
+                    onClick={() => {
+                      setEditingProduct(product)
+                      setIsEditDialogOpen(true)
+                    }}
+                    aria-label={`${product.name} ürününü düzenle`}
+                  >
+                    Düzenle
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="text-red-600 dark:text-red-400 border border-red-200 dark:border-red-800 hover:bg-red-50 dark:hover:bg-red-900/30"
+                    onClick={() => handleDeleteProduct(product.id)}
+                    aria-label={`${product.name} ürününü sil`}
+                  >
+                    Sil
+                  </Button>
+                </div>
+              </div>
+            </Card>
+          ))}
+        </div>
 
         <div className="p-4 border-t border-gray-200 dark:border-gray-700 flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -664,4 +763,5 @@ const ProductsPage = () => {
   )
 }
 
-export default ProductsPage 
+export default ProductsPage
+

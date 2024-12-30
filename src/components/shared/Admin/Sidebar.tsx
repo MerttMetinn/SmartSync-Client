@@ -1,8 +1,9 @@
 import React from 'react'
 import { NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
+import { useTheme } from '@/contexts/ThemeContext'
 import Swal from 'sweetalert2'
-import { LayoutDashboard, Package, BarChart3, LogOut, AlertCircle, Radio, ShoppingCart } from 'lucide-react'
+import { LayoutDashboard, Package, LogOut, Radio, ShoppingCart, PackageSearch } from 'lucide-react'
 
 interface SidebarProps {
   isOpen: boolean
@@ -13,48 +14,42 @@ const menuItems = [
     title: 'Dashboard', 
     path: '/admin', 
     icon: LayoutDashboard,
-    gradient: 'from-sky-400 to-blue-600',
-    hoverBg: 'hover:bg-blue-50 dark:hover:bg-blue-900/20'
+    gradient: 'from-indigo-500 to-blue-600',
+    hoverBg: 'hover:bg-indigo-50 dark:hover:bg-indigo-900/20'
   },
   { 
     title: 'Ürün Yönetimi', 
     path: '/admin/products', 
     icon: Package,
-    gradient: 'from-violet-400 to-purple-600',
+    gradient: 'from-fuchsia-500 to-purple-600',
     hoverBg: 'hover:bg-purple-50 dark:hover:bg-purple-900/20'
   },
   { 
-    title: 'Stok Durumu', 
+    title: 'Stok Yönetimi', 
     path: '/admin/inventory', 
-    icon: BarChart3,
-    gradient: 'from-emerald-400 to-green-600',
-    hoverBg: 'hover:bg-green-50 dark:hover:bg-green-900/20'
+    icon: PackageSearch,
+    gradient: 'from-teal-500 to-emerald-600',
+    hoverBg: 'hover:bg-emerald-50 dark:hover:bg-emerald-900/20'
   },
   { 
     title: 'Sipariş Yönetimi', 
     path: '/admin/orders', 
     icon: ShoppingCart,
-    gradient: 'from-amber-400 to-orange-600',
-    hoverBg: 'hover:bg-orange-50 dark:hover:bg-orange-900/20'
-  },
-  { 
-    title: 'Sipariş Logları', 
-    path: '/admin/logs', 
-    icon: AlertCircle,
-    gradient: 'from-pink-400 to-rose-600',
-    hoverBg: 'hover:bg-rose-50 dark:hover:bg-rose-900/20'
+    gradient: 'from-orange-500 to-amber-600',
+    hoverBg: 'hover:bg-amber-50 dark:hover:bg-amber-900/20'
   },
   { 
     title: 'Canlı Log Akışı', 
     path: '/admin/live-logs', 
     icon: Radio,
-    gradient: 'from-teal-400 to-cyan-600',
-    hoverBg: 'hover:bg-cyan-50 dark:hover:bg-cyan-900/20'
-  },
+    gradient: 'from-rose-500 to-pink-600',
+    hoverBg: 'hover:bg-pink-50 dark:hover:bg-pink-900/20'
+  }
 ]
 
 const Sidebar = ({ isOpen }: SidebarProps) => {
   const { logout } = useAuth()
+  const { theme } = useTheme()
   const location = useLocation()
   const navigate = useNavigate()
 
@@ -89,13 +84,17 @@ const Sidebar = ({ isOpen }: SidebarProps) => {
 
   return (
     <aside 
-      className={`fixed lg:sticky top-0 left-0 z-50 h-screen bg-white/90 dark:bg-gray-900/90 backdrop-blur-xl shadow-lg border-r border-gray-200/30 dark:border-gray-800/30 transition-all duration-300 ease-in-out ${
-        isOpen ? 'w-64' : 'w-20'
-      }`}
+      className={`fixed lg:sticky top-0 left-0 z-50 h-screen 
+        ${theme === 'dark' 
+          ? 'bg-gray-900/95 border-gray-800/30' 
+          : 'bg-white/95 border-gray-200/30'} 
+        backdrop-blur-xl shadow-lg border-r transition-all duration-300 ease-in-out 
+        ${isOpen ? 'w-64' : 'w-20'}`}
     >
       <div className="h-full flex flex-col">
-        <div className="h-16 flex items-center justify-center bg-gradient-to-r from-blue-500 to-purple-600">
-          <h1 className={`text-xl font-bold text-white transition-all duration-300 ${
+        <div className="h-16 flex items-center justify-center bg-gradient-to-r from-indigo-600 to-blue-600 relative overflow-hidden">
+          <div className="absolute inset-0 bg-[url('/grid.svg')] bg-center [mask-image:linear-gradient(180deg,white,rgba(255,255,255,0))]"></div>
+          <h1 className={`text-xl font-bold text-white relative z-10 transition-all duration-300 ${
             isOpen ? 'w-full text-center' : 'w-20 text-center text-sm'
           }`}>
             {isOpen ? 'SmartSync' : 'SS'}
@@ -112,12 +111,15 @@ const Sidebar = ({ isOpen }: SidebarProps) => {
                 to={item.path}
                 end
                 className={({ isActive }) =>
-                  `flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-all group ${
+                  `flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-all group relative overflow-hidden ${
                     isActive
                       ? `bg-gradient-to-r ${item.gradient} text-white shadow-lg`
                       : `text-gray-600 dark:text-gray-400 ${item.hoverBg}`
                   } ${!isOpen ? 'justify-center' : ''}`}
               >
+                {isActive && (
+                  <div className="absolute inset-0 bg-[url('/grid.svg')] bg-center [mask-image:linear-gradient(180deg,white,rgba(255,255,255,0))]"></div>
+                )}
                 <div className={`relative ${!isOpen ? 'w-10 h-10 flex items-center justify-center' : ''}`}>
                   <item.icon 
                     className={`h-5 w-5 flex-shrink-0 transition-transform duration-200 group-hover:scale-110 ${
@@ -127,7 +129,7 @@ const Sidebar = ({ isOpen }: SidebarProps) => {
                   />
                 </div>
                 {isOpen && (
-                  <span className="ml-3 whitespace-nowrap">{item.title}</span>
+                  <span className="ml-3 whitespace-nowrap relative">{item.title}</span>
                 )}
               </NavLink>
             )
@@ -137,16 +139,16 @@ const Sidebar = ({ isOpen }: SidebarProps) => {
         <div className="p-4 border-t border-gray-200/30 dark:border-gray-800/30">
           <button
             onClick={handleLogout}
-            className={`flex items-center w-full px-4 py-3 text-sm font-medium rounded-lg group transition-colors bg-gradient-to-r hover:from-rose-500 hover:to-red-600 ${
-              !isOpen ? 'justify-center' : ''
-            }`}
+            className={`flex items-center w-full px-4 py-3 text-sm font-medium rounded-lg group 
+              transition-colors bg-gradient-to-r hover:from-rose-500 hover:to-red-600 relative overflow-hidden
+              ${!isOpen ? 'justify-center' : ''}`}
           >
             <LogOut 
               className="h-5 w-5 flex-shrink-0 text-gray-500 dark:text-gray-400 group-hover:text-white transition-colors" 
               strokeWidth={1.5}
             />
             {isOpen && (
-              <span className="ml-3 text-gray-600 dark:text-gray-400 group-hover:text-white">
+              <span className="ml-3 text-gray-600 dark:text-gray-400 group-hover:text-white relative">
                 Çıkış Yap
               </span>
             )}

@@ -2,7 +2,7 @@ import React, { useEffect, useState, useCallback } from 'react'
 import { Card } from '@/components/ui/card'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { motion, AnimatePresence } from 'framer-motion'
-import { AlertCircle, AlertTriangle, Info, Search, Filter } from 'lucide-react'
+import { AlertCircle, AlertTriangle, Info, Search, Filter, CheckCircle2 } from 'lucide-react'
 import axiosInstance from '@/contexts/axiosInstance'
 import { toast } from 'react-toastify'
 import { AxiosError } from 'axios'
@@ -19,7 +19,8 @@ import {
 enum LogType {
   Error = 0,
   Warning = 1,
-  Information = 2
+  Information = 2,
+  Success = 3
 }
 
 interface Log {
@@ -115,6 +116,8 @@ const LiveLogPanel: React.FC = () => {
         return <AlertTriangle className="h-5 w-5 text-yellow-500" />
       case LogType.Information:
         return <Info className="h-5 w-5 text-blue-500" />
+      case LogType.Success:
+        return <CheckCircle2 className="h-5 w-5 text-emerald-500" />
     }
   }
 
@@ -126,6 +129,8 @@ const LiveLogPanel: React.FC = () => {
         return 'bg-gradient-to-r from-yellow-50 to-yellow-100 dark:from-yellow-900/20 dark:to-yellow-800/20 border-yellow-200 dark:border-yellow-800 shadow-sm hover:shadow-md transition-shadow duration-200'
       case LogType.Information:
         return 'bg-gradient-to-r from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 border-blue-200 dark:border-blue-800 shadow-sm hover:shadow-md transition-shadow duration-200'
+      case LogType.Success:
+        return 'bg-gradient-to-r from-emerald-50 to-emerald-100 dark:from-emerald-900/20 dark:to-emerald-800/20 border-emerald-200 dark:border-emerald-800 shadow-sm hover:shadow-md transition-shadow duration-200'
     }
   }
 
@@ -180,6 +185,9 @@ const LiveLogPanel: React.FC = () => {
               </SelectItem>
               <SelectItem value="2" className="text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20">
                 Bilgi
+              </SelectItem>
+              <SelectItem value="3" className="text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/20">
+                Başarılı
               </SelectItem>
             </SelectContent>
           </Select>

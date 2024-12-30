@@ -91,20 +91,40 @@ const InventoryPage = () => {
 
   return (
     <div className="p-6 space-y-6">
-      <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">
-        Stok Durumu
-      </h1>
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">
+          Stok Durumu
+        </h1>
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
+            <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400">
+              Kritik: {products.filter(p => p.stock <= 10).length}
+            </span>
+            <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400">
+              Uyarı: {products.filter(p => p.stock > 10 && p.stock <= 20).length}
+            </span>
+            <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400">
+              Normal: {products.filter(p => p.stock > 20).length}
+            </span>
+          </div>
+        </div>
+      </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Bar Grafik */}
-        <Card className="p-6 bg-white dark:bg-gray-800">
-          <h2 className="text-lg font-medium text-gray-900 dark:text-white mb-4">
-            Ürün Stok Seviyeleri
-          </h2>
+        <Card className="p-6 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-medium text-gray-900 dark:text-white">
+              Ürün Stok Seviyeleri
+            </h2>
+            <div className="text-sm text-gray-500 dark:text-gray-400">
+              Toplam {products.length} ürün
+            </div>
+          </div>
           <div className="h-[400px]">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={chartData}>
-                <CartesianGrid strokeDasharray="3 3" />
+                <CartesianGrid strokeDasharray="3 3" className="stroke-gray-200 dark:stroke-gray-700" />
                 <XAxis 
                   dataKey="name" 
                   angle={-45}
@@ -112,15 +132,26 @@ const InventoryPage = () => {
                   height={80}
                   interval={0}
                   tick={{ fontSize: 12 }}
+                  className="text-gray-600 dark:text-gray-400"
                 />
-                <YAxis />
+                <YAxis 
+                  className="text-gray-600 dark:text-gray-400"
+                />
                 <Tooltip 
                   contentStyle={{ 
-                    backgroundColor: 'rgba(255, 255, 255, 0.9)',
-                    border: '1px solid #ccc'
+                    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                    border: '1px solid #e5e7eb',
+                    borderRadius: '0.5rem',
+                    boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
+                    padding: '0.75rem'
+                  }}
+                  cursor={{ fill: 'rgba(0, 0, 0, 0.04)' }}
+                />
+                <Legend 
+                  wrapperStyle={{
+                    paddingTop: '1rem'
                   }}
                 />
-                <Legend />
                 <Bar dataKey="stock" name="Stok Miktarı">
                   {chartData.map((entry, index) => (
                     <Cell key={index} fill={entry.color} />
@@ -132,10 +163,15 @@ const InventoryPage = () => {
         </Card>
 
         {/* Pasta Grafik */}
-        <Card className="p-6 bg-white dark:bg-gray-800">
-          <h2 className="text-lg font-medium text-gray-900 dark:text-white mb-4">
-            Stok Durumu Dağılımı
-          </h2>
+        <Card className="p-6 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-medium text-gray-900 dark:text-white">
+              Stok Durumu Dağılımı
+            </h2>
+            <div className="text-sm text-gray-500 dark:text-gray-400">
+              Son güncelleme: {new Date().toLocaleTimeString('tr-TR')}
+            </div>
+          </div>
           <div className="h-[400px]">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
@@ -156,41 +192,66 @@ const InventoryPage = () => {
                     />
                   ))}
                 </Pie>
-                <Tooltip />
-                <Legend />
+                <Tooltip 
+                  contentStyle={{ 
+                    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                    border: '1px solid #e5e7eb',
+                    borderRadius: '0.5rem',
+                    boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
+                    padding: '0.75rem'
+                  }}
+                />
+                <Legend 
+                  wrapperStyle={{
+                    paddingTop: '1rem'
+                  }}
+                />
               </PieChart>
             </ResponsiveContainer>
           </div>
         </Card>
 
         {/* Stok Durumu Tablosu */}
-        <Card className="p-6 bg-white dark:bg-gray-800 lg:col-span-2">
-          <h2 className="text-lg font-medium text-gray-900 dark:text-white mb-4">
-            Kritik Stok Seviyeleri
-          </h2>
+        <Card className="p-6 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 lg:col-span-2">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-medium text-gray-900 dark:text-white">
+              Kritik Stok Seviyeleri
+            </h2>
+            <div className="text-sm text-gray-500 dark:text-gray-400">
+              {products.filter(p => p.stock <= 20).length} ürün dikkat gerektiriyor
+            </div>
+          </div>
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
-                <tr className="border-b border-gray-200 dark:border-gray-700">
-                  <th className="text-left py-3 px-4 text-sm font-medium text-gray-600 dark:text-gray-300">Ürün Adı</th>
-                  <th className="text-right py-3 px-4 text-sm font-medium text-gray-600 dark:text-gray-300">Stok</th>
-                  <th className="text-right py-3 px-4 text-sm font-medium text-gray-600 dark:text-gray-300">Durum</th>
+                <tr className="bg-gray-50 dark:bg-gray-800/50">
+                  <th className="text-left py-3 px-4 text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">Ürün Adı</th>
+                  <th className="text-left py-3 px-4 text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">Ürün ID</th>
+                  <th className="text-right py-3 px-4 text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">Stok</th>
+                  <th className="text-right py-3 px-4 text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">Fiyat</th>
+                  <th className="text-right py-3 px-4 text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">Durum</th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
                 {products
                   .filter(product => product.stock <= 20)
                   .sort((a, b) => a.stock - b.stock)
                   .map(product => (
                     <tr 
                       key={product.id}
-                      className="border-b border-gray-200 dark:border-gray-700"
+                      className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
                     >
-                      <td className="py-3 px-4 text-sm text-gray-900 dark:text-white">
+                      <td className="py-3 px-4 text-sm font-medium text-gray-900 dark:text-white">
                         {product.name}
                       </td>
-                      <td className="py-3 px-4 text-sm text-right text-gray-900 dark:text-white">
+                      <td className="py-3 px-4 text-sm text-gray-500 dark:text-gray-400 font-mono">
+                        {product.id}
+                      </td>
+                      <td className="py-3 px-4 text-sm text-right font-medium text-gray-900 dark:text-white">
                         {product.stock}
+                      </td>
+                      <td className="py-3 px-4 text-sm text-right text-gray-900 dark:text-white">
+                        {product.price.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}
                       </td>
                       <td className="py-3 px-4 text-sm text-right">
                         <span
