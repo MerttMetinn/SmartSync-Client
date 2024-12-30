@@ -1,155 +1,231 @@
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useEffect, useState, useCallback } from 'react'
 import { Card } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { format } from 'date-fns'
-import { tr } from 'date-fns/locale'
+import { motion, AnimatePresence } from 'framer-motion'
+import { AlertCircle, AlertTriangle, Info, Search, Filter } from 'lucide-react'
+import axiosInstance from '@/contexts/axiosInstance'
+import { toast } from 'react-toastify'
+import { AxiosError } from 'axios'
+import { Input } from '@/components/ui/input'
+import { Button } from '@/components/ui/button'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 
-interface LogItem {
+enum LogType {
+  Error = 0,
+  Warning = 1,
+  Information = 2
+}
+
+interface Log {
   id: string
-  message: string
-  type: 'info' | 'success' | 'error' | 'warning'
-  timestamp: Date
-  customerId: number
-  customerType: 'premium' | 'normal'
-  details?: {
-    products?: Array<{
-      productId: number
-      productName: string
-      quantity: number
-    }>
-    status?: string
+  customerId: string
+  orderId: string
+  type: LogType
+  details: string
+  createdDate: string
+}
+
+interface ApiResponse {
+  response: {
+    success: boolean
+    message: string
+    responseType: 'Success' | 'Error' | 'Warning' | 'Info'
   }
+  logs: Log[]
 }
 
 const LiveLogPanel: React.FC = () => {
-  const [logs, setLogs] = useState<LogItem[]>([])
-  const scrollRef = useRef<HTMLDivElement>(null)
+  const [logs, setLogs] = useState<Log[]>([])
+  const [filteredLogs, setFilteredLogs] = useState<Log[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [searchTerm, setSearchTerm] = useState('')
+  const [selectedType, setSelectedType] = useState<string>('all')
+  const [autoRefresh, setAutoRefresh] = useState(true)
 
-  // Mock veri üretimi için örnek fonksiyon
-  const generateMockLog = (): LogItem => {
-    const customers = [
-      { id: 1, type: 'premium' },
-      { id: 2, type: 'normal' },
-      { id: 3, type: 'premium' },
-      { id: 4, type: 'normal' }
-    ]
-    const products = [
-      { id: 1, name: 'Product1' },
-      { id: 2, name: 'Product2' },
-      { id: 3, name: 'Product3' },
-      { id: 4, name: 'Product4' },
-      { id: 5, name: 'Product5' }
-    ]
-    const logTypes = ['info', 'success', 'error', 'warning'] as const
+  const fetchLogs = useCallback(async () => {
+    try {
+      const response = await axiosInstance.get<ApiResponse>('/api/Log/GetLogs')
+      if (response.data.response.success) {
+        setLogs(response.data.logs)
+        filterLogs(response.data.logs, searchTerm, selectedType)
+      } else {
+        toast.error(response.data.response.message)
+      }
+    } catch (error: unknown) {
+      if (error instanceof AxiosError) {
+        console.error('Loglar getirilirken hata oluştu:', error)
+        toast.error(error.response?.data?.message || 'Loglar yüklenirken bir hata oluştu')
+      }
+    } finally {
+      setIsLoading(false)
+    }
+  }, [searchTerm, selectedType])
+
+  useEffect(() => {
+    fetchLogs()
+    let interval: NodeJS.Timeout | null = null
     
-    const customer = customers[Math.floor(Math.random() * customers.length)]
-    const product = products[Math.floor(Math.random() * products.length)]
-    const quantity = Math.floor(Math.random() * 100) + 1
-    const type = logTypes[Math.floor(Math.random() * logTypes.length)]
+    if (autoRefresh) {
+      interval = setInterval(fetchLogs, 5000)
+    }
     
-    let message = ''
-    let details = {}
-    
-    switch (type) {
-      case 'info':
-        message = `Müşteri ${customer.id} (${customer.type}) ${product.name}'den ${quantity} adet sipariş verdi.`
-        details = {
-          products: [{ productId: product.id, productName: product.name, quantity }],
-          status: 'Sipariş Verildi'
-        }
-        break
-      case 'success':
-        message = `Müşteri ${customer.id} (${customer.type}) siparişi onaylandı.`
-        details = { status: 'Onaylandı' }
-        break
-      case 'error':
-        message = `Müşteri ${customer.id} (${customer.type}) siparişi stok yetersizliğinden iptal edildi.`
-        details = { status: 'İptal Edildi' }
-        break
-      case 'warning':
-        message = `Müşteri ${customer.id} (${customer.type}) siparişi işleme alındı.`
-        details = { status: 'İşleme Alındı' }
-        break
+    return () => {
+      if (interval) clearInterval(interval)
+    }
+  }, [fetchLogs, autoRefresh])
+
+  const filterLogs = (logs: Log[], search: string, type: string) => {
+    let filtered = [...logs]
+
+    // Tip filtreleme
+    if (type !== 'all') {
+      filtered = filtered.filter(log => log.type === Number(type))
     }
 
-    return {
-      id: Math.random().toString(36).substr(2, 9),
-      message,
-      type,
-      timestamp: new Date(),
-      customerId: customer.id,
-      customerType: customer.type as 'premium' | 'normal',
-      details
+    // Arama filtreleme
+    if (search) {
+      filtered = filtered.filter(log => 
+        log.details.toLowerCase().includes(search.toLowerCase()) ||
+        log.orderId.toLowerCase().includes(search.toLowerCase()) ||
+        log.customerId.toLowerCase().includes(search.toLowerCase())
+      )
     }
+
+    // Tarihe göre sırala (en yeni en üstte)
+    filtered.sort((a, b) => new Date(b.createdDate).getTime() - new Date(a.createdDate).getTime())
+
+    setFilteredLogs(filtered)
   }
 
   useEffect(() => {
-    // İlk yükleme için 5 log oluştur
-    setLogs([...Array(5)].map(generateMockLog))
+    filterLogs(logs, searchTerm, selectedType)
+  }, [logs, searchTerm, selectedType])
 
-    // Her 2-5 saniye arasında yeni log ekle
-    const interval = setInterval(() => {
-      setLogs(prevLogs => [generateMockLog(), ...prevLogs.slice(0, 49)]) // Max 50 log tut
-    }, Math.random() * 3000 + 2000)
-
-    return () => clearInterval(interval)
-  }, [])
-
-  // Yeni log eklendiğinde otomatik scroll
-  useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = 0
-    }
-  }, [logs])
-
-  const getLogTypeStyles = (type: LogItem['type']) => {
+  const getLogIcon = (type: LogType) => {
     switch (type) {
-      case 'error':
-        return 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300 border-red-200 dark:border-red-800/30'
-      case 'warning':
-        return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300 border-yellow-200 dark:border-yellow-800/30'
-      case 'success':
-        return 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300 border-green-200 dark:border-green-800/30'
-      default:
-        return 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300 border-blue-200 dark:border-blue-800/30'
+      case LogType.Error:
+        return <AlertCircle className="h-5 w-5 text-red-500" />
+      case LogType.Warning:
+        return <AlertTriangle className="h-5 w-5 text-yellow-500" />
+      case LogType.Information:
+        return <Info className="h-5 w-5 text-blue-500" />
     }
+  }
+
+  const getLogColor = (type: LogType) => {
+    switch (type) {
+      case LogType.Error:
+        return 'bg-gradient-to-r from-red-50 to-red-100 dark:from-red-900/20 dark:to-red-800/20 border-red-200 dark:border-red-800 shadow-sm hover:shadow-md transition-shadow duration-200'
+      case LogType.Warning:
+        return 'bg-gradient-to-r from-yellow-50 to-yellow-100 dark:from-yellow-900/20 dark:to-yellow-800/20 border-yellow-200 dark:border-yellow-800 shadow-sm hover:shadow-md transition-shadow duration-200'
+      case LogType.Information:
+        return 'bg-gradient-to-r from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 border-blue-200 dark:border-blue-800 shadow-sm hover:shadow-md transition-shadow duration-200'
+    }
+  }
+
+  if (isLoading) {
+    return (
+      <Card className="h-[600px] flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500" />
+      </Card>
+    )
   }
 
   return (
-    <Card className="border border-gray-200 dark:border-gray-700">
+    <Card className="h-[650px] overflow-hidden">
       <div className="p-4 border-b border-gray-200 dark:border-gray-700">
-        <h2 className="text-lg font-semibold text-gray-800 dark:text-white">Canlı Log Akışı</h2>
-      </div>
-      
-      <ScrollArea className="h-[600px]" ref={scrollRef}>
-        <div className="p-4 space-y-3">
-          {logs.map(log => (
-            <div
-              key={log.id}
-              className={`p-3 rounded-lg border ${getLogTypeStyles(log.type)} transition-colors duration-200`}
-            >
-              <div className="flex items-center justify-between mb-1">
-                <Badge 
-                  variant="outline" 
-                  className={`${log.customerType === 'premium' ? 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300' : 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300'}`}
-                >
-                  Müşteri {log.customerId} ({log.customerType})
-                </Badge>
-                <span className="text-xs text-gray-500 dark:text-gray-400">
-                  {format(log.timestamp, 'HH:mm:ss', { locale: tr })}
-                </span>
-              </div>
-              <p className="text-sm">{log.message}</p>
-              {log.details?.products && (
-                <div className="mt-1 text-xs text-gray-600 dark:text-gray-400">
-                  Ürünler: {log.details.products.map(p => 
-                    `${p.productName} (${p.quantity} adet)`
-                  ).join(', ')}
-                </div>
-              )}
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Canlı Loglar</h2>
+          <Button
+            variant="outline"
+            onClick={() => setAutoRefresh(!autoRefresh)}
+            className={autoRefresh ? 'bg-blue-50' : ''}
+          >
+            {autoRefresh ? 'Otomatik Yenileme Açık' : 'Otomatik Yenileme Kapalı'}
+          </Button>
+        </div>
+        
+        <div className="flex gap-4 mb-4">
+          <div className="flex-1">
+            <div className="relative">
+              <Search className="absolute left-2 top-2.5 h-4 w-4 text-gray-500" />
+              <Input
+                placeholder="Log ara..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-8"
+              />
             </div>
-          ))}
+          </div>
+          <Select
+            value={selectedType}
+            onValueChange={setSelectedType}
+          >
+            <SelectTrigger className="w-[180px] bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
+              <SelectValue placeholder="Log tipi seçin" />
+            </SelectTrigger>
+            <SelectContent className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
+              <SelectItem value="all">Tüm Loglar</SelectItem>
+              <SelectItem value="0" className="text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20">
+                Hata
+              </SelectItem>
+              <SelectItem value="1" className="text-yellow-600 dark:text-yellow-400 hover:bg-yellow-50 dark:hover:bg-yellow-900/20">
+                Uyarı
+              </SelectItem>
+              <SelectItem value="2" className="text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20">
+                Bilgi
+              </SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      <ScrollArea className="h-[550px]">
+        <div className="p-4 pb-6 space-y-3">
+          <AnimatePresence mode="popLayout">
+            {filteredLogs.map((log) => (
+              <motion.div
+                key={log.id}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, x: -100 }}
+                className={`p-4 rounded-lg border backdrop-blur-sm ${getLogColor(log.type)} flex items-start gap-3`}
+              >
+                {getLogIcon(log.type)}
+                <div className="flex-1 min-w-0">
+                  <div className="flex justify-between items-start mb-2">
+                    <p className="text-sm text-gray-900 dark:text-white font-medium">
+                      {log.details}
+                    </p>
+                    <span className="text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap ml-4">
+                      {new Date(log.createdDate).toLocaleString('tr-TR', {
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        second: '2-digit'
+                      })}
+                    </span>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="text-xs px-2 py-1 rounded-full bg-white/50 dark:bg-black/20 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700">
+                      Sipariş: #{log.orderId.slice(0, 8)}
+                    </span>
+                    <span className="text-xs px-2 py-1 rounded-full bg-white/50 dark:bg-black/20 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700">
+                      Müşteri: #{log.customerId.slice(0, 8)}
+                    </span>
+                    <span className="text-xs text-gray-500 dark:text-gray-400">
+                      {new Date(log.createdDate).toLocaleDateString('tr-TR')}
+                    </span>
+                  </div>
+                </div>
+              </motion.div>
+            ))}
+          </AnimatePresence>
         </div>
       </ScrollArea>
     </Card>

@@ -1,21 +1,17 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { toast } from 'react-toastify'
-import { motion } from 'framer-motion'
-import { Package2, Clock, AlertCircle, CheckCircle2, RefreshCcw } from 'lucide-react'
+import { motion, AnimatePresence } from 'framer-motion'
+import { Package2, Clock, AlertCircle, CheckCircle2, RefreshCcw, Loader2 } from 'lucide-react'
 import axiosInstance from '@/contexts/axiosInstance'
 import { AxiosError } from 'axios'
 
 enum OrderStatus {
   Pending = 0,
-  QueuedForProcessing = 1,
-  ValidatingOrder = 2,
-  CheckingStock = 3,
-  ProcessingPayment = 4,
-  UpdatingInventory = 5,
-  Completed = 6,
-  Error = 7
+  Processing = 1,
+  Completed = 2,
+  Error = 3
 }
 
 interface Order {
@@ -45,14 +41,13 @@ interface ApiResponse {
   orders: Order[]
 }
 
-const OrdersPage = () => {
+const OrdersPage: React.FC = () => {
   const [orders, setOrders] = useState<Order[]>([])
   const [selectedStatus, setSelectedStatus] = useState<number | 'all'>('all')
   const [isProcessing, setIsProcessing] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
-  const [pollingInterval, setPollingInterval] = useState<NodeJS.Timeout | null>(null)
 
-  const fetchOrders = async () => {
+  const fetchOrders = useCallback(async () => {
     try {
       const response = await axiosInstance.get<ApiResponse>('/api/Order/GetOrders')
       if (response.data.response.success) {
@@ -68,20 +63,13 @@ const OrdersPage = () => {
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [])
 
-  const startPolling = () => {
-    // Her 500ms'de bir siparişleri güncelle (daha sık güncelleme için)
-    const interval = setInterval(fetchOrders, 500)
-    setPollingInterval(interval)
-  }
-
-  const stopPolling = () => {
-    if (pollingInterval) {
-      clearInterval(pollingInterval)
-      setPollingInterval(null)
-    }
-  }
+  useEffect(() => {
+    fetchOrders()
+    const interval = setInterval(fetchOrders, 5000) // Fetch orders every 5 seconds
+    return () => clearInterval(interval)
+  }, [fetchOrders])
 
   const handleProcessOrders = async () => {
     setIsProcessing(true)
@@ -93,7 +81,7 @@ const OrdersPage = () => {
       })
       if (response.data.response.success) {
         toast.success('Siparişler işleme alındı')
-        startPolling()
+        fetchOrders() // Refresh orders immediately
       } else {
         toast.error(response.data.response.message)
       }
@@ -107,44 +95,12 @@ const OrdersPage = () => {
     }
   }
 
-  useEffect(() => {
-    fetchOrders()
-
-    // Component unmount olduğunda polling'i durdur
-    return () => {
-      stopPolling()
-    }
-  }, [])
-
-  // Bekleyen sipariş kalmadığında polling'i durdur
-  useEffect(() => {
-    if (!orders.some(order => 
-      order.status > OrderStatus.Pending && 
-      order.status < OrderStatus.Completed
-    )) {
-      stopPolling()
-    } else {
-      // Eğer işlenen sipariş varsa ve polling aktif değilse, polling'i başlat
-      if (!pollingInterval) {
-        startPolling()
-      }
-    }
-  }, [orders, pollingInterval])
-
   const getStatusText = (status: number) => {
     switch (status) {
       case OrderStatus.Pending:
         return 'Beklemede'
-      case OrderStatus.QueuedForProcessing:
-        return 'Sıraya Alındı'
-      case OrderStatus.ValidatingOrder:
-        return 'Doğrulanıyor'
-      case OrderStatus.CheckingStock:
-        return 'Stok Kontrolü'
-      case OrderStatus.ProcessingPayment:
-        return 'Ödeme İşleniyor'
-      case OrderStatus.UpdatingInventory:
-        return 'Stok Güncelleniyor'
+      case OrderStatus.Processing:
+        return 'İşleniyor'
       case OrderStatus.Completed:
         return 'Tamamlandı'
       case OrderStatus.Error:
@@ -158,16 +114,8 @@ const OrdersPage = () => {
     switch (status) {
       case OrderStatus.Pending:
         return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400'
-      case OrderStatus.QueuedForProcessing:
+      case OrderStatus.Processing:
         return 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400'
-      case OrderStatus.ValidatingOrder:
-        return 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400'
-      case OrderStatus.CheckingStock:
-        return 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-400'
-      case OrderStatus.ProcessingPayment:
-        return 'bg-pink-100 text-pink-800 dark:bg-pink-900/30 dark:text-pink-400'
-      case OrderStatus.UpdatingInventory:
-        return 'bg-cyan-100 text-cyan-800 dark:bg-cyan-900/30 dark:text-cyan-400'
       case OrderStatus.Completed:
         return 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
       case OrderStatus.Error:
@@ -181,16 +129,8 @@ const OrdersPage = () => {
     switch (status) {
       case OrderStatus.Pending:
         return 0
-      case OrderStatus.QueuedForProcessing:
-        return 16.66
-      case OrderStatus.ValidatingOrder:
-        return 33.33
-      case OrderStatus.CheckingStock:
+      case OrderStatus.Processing:
         return 50
-      case OrderStatus.ProcessingPayment:
-        return 66.66
-      case OrderStatus.UpdatingInventory:
-        return 83.33
       case OrderStatus.Completed:
         return 100
       case OrderStatus.Error:
@@ -244,18 +184,16 @@ const OrdersPage = () => {
 
   if (isLoading) {
     return (
-      <div className="p-6">
-        <div className="text-center text-gray-600 dark:text-gray-400">
-          Yükleniyor...
-        </div>
+      <div className="flex items-center justify-center h-screen">
+        <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
       </div>
     )
   }
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-6 space-y-6 bg-gray-50 dark:bg-gray-900 min-h-screen">
       <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
           Sipariş Yönetimi
         </h1>
         <Button
@@ -268,10 +206,9 @@ const OrdersPage = () => {
         </Button>
       </div>
 
-      {/* İstatistik Kartları */}
       <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
         {stats.map((stat, index) => (
-          <Card key={index} className="p-6">
+          <Card key={index} className="p-6 hover:shadow-lg transition-shadow duration-300">
             <div className="flex items-center gap-4">
               <div className={`p-3 rounded-full ${stat.bgColor}`}>
                 <stat.icon className={`h-6 w-6 ${stat.color}`} />
@@ -289,63 +226,24 @@ const OrdersPage = () => {
         ))}
       </div>
 
-      {/* Filtreler ve İşlem Butonu */}
-      <div className="flex justify-between items-center">
-        <div className="flex gap-2">
+      <div className="flex flex-wrap justify-between items-center gap-4">
+        <div className="flex flex-wrap gap-2">
           <Button
             variant={selectedStatus === 'all' ? 'default' : 'outline'}
             onClick={() => setSelectedStatus('all')}
           >
             Tümü
           </Button>
-          <Button
-            variant={selectedStatus === OrderStatus.Pending ? 'default' : 'outline'}
-            onClick={() => setSelectedStatus(OrderStatus.Pending)}
-          >
-            Bekleyen
-          </Button>
-          <Button
-            variant={selectedStatus === OrderStatus.QueuedForProcessing ? 'default' : 'outline'}
-            onClick={() => setSelectedStatus(OrderStatus.QueuedForProcessing)}
-          >
-            Sıraya Alındı
-          </Button>
-          <Button
-            variant={selectedStatus === OrderStatus.ValidatingOrder ? 'default' : 'outline'}
-            onClick={() => setSelectedStatus(OrderStatus.ValidatingOrder)}
-          >
-            Doğrulanıyor
-          </Button>
-          <Button
-            variant={selectedStatus === OrderStatus.CheckingStock ? 'default' : 'outline'}
-            onClick={() => setSelectedStatus(OrderStatus.CheckingStock)}
-          >
-            Stok Kontrolü
-          </Button>
-          <Button
-            variant={selectedStatus === OrderStatus.ProcessingPayment ? 'default' : 'outline'}
-            onClick={() => setSelectedStatus(OrderStatus.ProcessingPayment)}
-          >
-            Ödeme İşleniyor
-          </Button>
-          <Button
-            variant={selectedStatus === OrderStatus.UpdatingInventory ? 'default' : 'outline'}
-            onClick={() => setSelectedStatus(OrderStatus.UpdatingInventory)}
-          >
-            Stok Güncelleniyor
-          </Button>
-          <Button
-            variant={selectedStatus === OrderStatus.Completed ? 'default' : 'outline'}
-            onClick={() => setSelectedStatus(OrderStatus.Completed)}
-          >
-            Tamamlandı
-          </Button>
-          <Button
-            variant={selectedStatus === OrderStatus.Error ? 'default' : 'outline'}
-            onClick={() => setSelectedStatus(OrderStatus.Error)}
-          >
-            Hatalı
-          </Button>
+          {Object.values(OrderStatus).filter(v => typeof v === 'number').map((status: number) => (
+            <Button
+              key={status}
+              variant={selectedStatus === status ? 'default' : 'outline'}
+              onClick={() => setSelectedStatus(status)}
+              className={`${getStatusColor(status)} border-none`}
+            >
+              {getStatusText(status)}
+            </Button>
+          ))}
         </div>
 
         <Button
@@ -357,12 +255,11 @@ const OrdersPage = () => {
         </Button>
       </div>
 
-      {/* Sipariş Tablosu */}
-      <Card>
+      <Card className="overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
-              <tr className="border-b border-gray-200 dark:border-gray-700">
+              <tr className="bg-gray-100 dark:bg-gray-800">
                 <th className="text-left py-3 px-4 text-sm font-medium text-gray-600 dark:text-gray-300">Sipariş No</th>
                 <th className="text-left py-3 px-4 text-sm font-medium text-gray-600 dark:text-gray-300">Müşteri ID</th>
                 <th className="text-left py-3 px-4 text-sm font-medium text-gray-600 dark:text-gray-300">Tutar</th>
@@ -371,65 +268,75 @@ const OrdersPage = () => {
               </tr>
             </thead>
             <tbody>
-              {filteredOrders.map((order) => (
-                <motion.tr
-                  key={order.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.3 }}
-                  className={`border-b border-gray-200 dark:border-gray-700 ${
-                    order.status > OrderStatus.Pending && order.status < OrderStatus.Completed
-                      ? 'bg-blue-50/50 dark:bg-blue-900/10'
-                      : ''
-                  }`}
-                >
-                  <td className="py-3 px-4 text-sm text-gray-900 dark:text-white">
-                    #{order.id}
-                  </td>
-                  <td className="py-3 px-4 text-sm text-gray-900 dark:text-white">
-                    {order.customerId}
-                  </td>
-                  <td className="py-3 px-4 text-sm text-gray-900 dark:text-white">
-                    {order.price.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}
-                  </td>
-                  <td className="py-3 px-4">
-                    <div className="flex flex-col gap-2">
-                      <motion.span
-                        initial={false}
-                        animate={{
-                          backgroundColor: getStatusColor(order.status).includes('bg-') 
-                            ? getStatusColor(order.status).split(' ')[0] 
-                            : undefined
-                        }}
-                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(order.status)}`}
-                      >
-                        {getStatusText(order.status)}
-                      </motion.span>
-                      {order.status !== OrderStatus.Pending && order.status !== OrderStatus.Completed && order.status !== OrderStatus.Error && (
-                        <div className="relative w-full h-3">
-                          <div className="absolute w-full h-full bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+              <AnimatePresence>
+                {filteredOrders.map((order) => (
+                  <motion.tr
+                    key={order.id}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -20 }}
+                    transition={{ duration: 0.3 }}
+                    className={`border-b border-gray-200 dark:border-gray-700 ${
+                      order.status > OrderStatus.Pending && order.status < OrderStatus.Completed
+                        ? 'bg-blue-50/50 dark:bg-blue-900/10'
+                        : ''
+                    }`}
+                  >
+                    <td className="py-3 px-4 text-sm text-gray-900 dark:text-white">
+                      #{order.id}
+                    </td>
+                    <td className="py-3 px-4 text-sm text-gray-900 dark:text-white">
+                      {order.customerId}
+                    </td>
+                    <td className="py-3 px-4 text-sm text-gray-900 dark:text-white">
+                      {order.price.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}
+                    </td>
+                    <td className="py-3 px-4">
+                      <div className="flex flex-col gap-2">
+                        <motion.span
+                          initial={false}
+                          animate={{
+                            backgroundColor: getStatusColor(order.status).includes('bg-') 
+                              ? getStatusColor(order.status).split(' ')[0] 
+                              : undefined
+                          }}
+                          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(order.status)}`}
+                        >
+                          {getStatusText(order.status)}
+                        </motion.span>
+                        {order.status === OrderStatus.Processing && (
+                          <div className="relative w-full h-2 mt-2">
+                            <div className="absolute w-full h-full bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                              <motion.div
+                                className="h-full bg-gradient-to-r from-blue-500 to-indigo-600"
+                                initial={{ width: "0%" }}
+                                animate={{ 
+                                  width: `${getProgressPercentage(order.status)}%`,
+                                }}
+                                transition={{ duration: 0.5, ease: "easeInOut" }}
+                              />
+                            </div>
                             <motion.div
-                              className="h-full bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500"
-                              initial={false}
-                              animate={{ 
-                                width: `${getProgressPercentage(order.status)}%`,
-                                transition: { duration: 0.3, ease: "easeInOut" }
+                              className="absolute top-0 left-0 h-full w-full bg-gradient-to-r from-transparent via-white to-transparent opacity-30"
+                              animate={{
+                                x: ["-100%", "100%"],
+                              }}
+                              transition={{
+                                repeat: Infinity,
+                                duration: 1.5,
+                                ease: "linear",
                               }}
                             />
                           </div>
-                          <div className="absolute w-full h-full rounded-full opacity-20 animate-pulse bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500" />
-                          <div className="absolute -right-7 -top-1 text-xs font-medium text-gray-600 dark:text-gray-300">
-                            {Math.round(getProgressPercentage(order.status))}%
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </td>
-                  <td className="py-3 px-4 text-sm text-gray-900 dark:text-white">
-                    {new Date(order.createdDate).toLocaleString('tr-TR')}
-                  </td>
-                </motion.tr>
-              ))}
+                        )}
+                      </div>
+                    </td>
+                    <td className="py-3 px-4 text-sm text-gray-900 dark:text-white">
+                      {new Date(order.createdDate).toLocaleString('tr-TR')}
+                    </td>
+                  </motion.tr>
+                ))}
+              </AnimatePresence>
             </tbody>
           </table>
         </div>
@@ -438,4 +345,5 @@ const OrdersPage = () => {
   )
 }
 
-export default OrdersPage 
+export default OrdersPage
+
