@@ -34,11 +34,10 @@ interface PaginatedResponse {
   products: Product[]
 }
 
-// Stok durumu için renk belirleme fonksiyonu
 const getStockColor = (stock: number) => {
-  if (stock <= 10) return '#ef4444' // Kritik seviye - Kırmızı
-  if (stock <= 20) return '#f97316' // Uyarı seviyesi - Turuncu
-  return '#22c55e' // Normal seviye - Yeşil
+  if (stock <= 10) return '#ef4444' 
+  if (stock <= 20) return '#f97316' 
+  return '#22c55e' 
 }
 
 const InventoryPage = () => {
@@ -64,14 +63,12 @@ const InventoryPage = () => {
     fetchProducts()
   }, [])
 
-  // Grafik verilerini hazırla
   const chartData = products.map(product => ({
     name: product.name,
     stock: product.stock,
     color: getStockColor(product.stock)
   }))
 
-  // Pasta grafik için veri hazırlama
   const pieData = products.reduce((acc, product) => {
     const stockLevel = product.stock <= 10 ? 'Kritik' : product.stock <= 20 ? 'Uyarı' : 'Normal'
     const existing = acc.find(item => item.name === stockLevel)

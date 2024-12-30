@@ -25,7 +25,6 @@ const CartPage = () => {
     if (isNaN(quantity) || quantity < 1) return
 
     try {
-        // Ürün bilgisini al - endpoint düzeltildi
         const response = await axiosInstance.get(`/api/Product/GetProductById?Id=${productId}`);
         
         if (!response.data.response.success) {
@@ -75,8 +74,21 @@ const CartPage = () => {
       const response = await axiosInstance.post<ApiResponse<void>>('/api/Order/CreateOrder', orderRequest)
 
       if (response.data.response.success) {
+        await clearCart()
+        
+        const profileResponse = await axiosInstance.get('/api/Customer/GetProfile')
+        if (profileResponse.data.response.success) {
+          const customerData = {
+            ...user,
+            budget: profileResponse.data.customer.budget || 0,
+            totalSpent: profileResponse.data.customer.totalSpent || 0,
+            customerType: profileResponse.data.customer.type === 0 ? 'Normal' : 'Premium'
+          }
+          localStorage.setItem('UserData', JSON.stringify(customerData))
+          window.dispatchEvent(new Event('userDataUpdated'))
+        }
+
         toast.success('Siparişiniz başarıyla oluşturuldu')
-        clearCart()
       } else {
         toast.error(response.data.response.message)
       }

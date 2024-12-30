@@ -23,13 +23,6 @@ const menuItems = [
     hoverBg: 'hover:bg-blue-50 dark:hover:bg-blue-900/20'
   },
   {
-    title: 'Siparişlerim',
-    path: '/customer/orders', 
-    icon: ShoppingCart,
-    gradient: 'from-violet-400 to-purple-600',
-    hoverBg: 'hover:bg-purple-50 dark:hover:bg-purple-900/20'
-  },
-  {
     title: 'Ürünler', 
     path: '/customer/products', 
     icon: Store,
@@ -44,12 +37,12 @@ const menuItems = [
     hoverBg: 'hover:bg-rose-50 dark:hover:bg-rose-900/20'
   },
   {
-    title: 'Cüzdan', 
-    path: '/customer/wallet', 
-    icon: CreditCard,
-    gradient: 'from-amber-400 to-orange-600',
-    hoverBg: 'hover:bg-orange-50 dark:hover:bg-orange-900/20'
-  }
+    title: 'Siparişlerim',
+    path: '/customer/orders', 
+    icon: ShoppingCart,
+    gradient: 'from-violet-400 to-purple-600',
+    hoverBg: 'hover:bg-purple-50 dark:hover:bg-purple-900/20'
+  },
 ]
 
 const Sidebar = ({ isOpen }: SidebarProps) => {

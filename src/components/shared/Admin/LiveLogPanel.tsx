@@ -84,12 +84,10 @@ const LiveLogPanel: React.FC = () => {
   const filterLogs = (logs: Log[], search: string, type: string) => {
     let filtered = [...logs]
 
-    // Tip filtreleme
     if (type !== 'all') {
       filtered = filtered.filter(log => log.type === Number(type))
     }
 
-    // Arama filtreleme
     if (search) {
       filtered = filtered.filter(log => 
         log.details.toLowerCase().includes(search.toLowerCase()) ||
@@ -98,7 +96,6 @@ const LiveLogPanel: React.FC = () => {
       )
     }
 
-    // Tarihe göre sırala (en yeni en üstte)
     filtered.sort((a, b) => new Date(b.createdDate).getTime() - new Date(a.createdDate).getTime())
 
     setFilteredLogs(filtered)

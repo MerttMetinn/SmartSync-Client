@@ -1,7 +1,6 @@
 import { Routes, Route } from "react-router-dom"
 import { lazy, Suspense } from "react"
 
-// Lazy loaded admin pages
 const DashboardPage = lazy(() => import("../pages/Admin/DashboardPage"))
 const ProductsPage = lazy(() => import("../pages/Admin/ProductsPage"))
 const InventoryPage = lazy(() => import("../pages/Admin/InventoryPage"))

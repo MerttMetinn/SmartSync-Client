@@ -35,7 +35,6 @@ export function ProductsPage() {
   const [loading, setLoading] = useState(true)
   const [quantities, setQuantities] = useState<{ [key: string]: number }>({})
 
-  // Ürünleri getir
   const fetchProducts = async () => {
     try {
       const response = await axiosInstance.get<ApiResponse>('/api/Product/GetProducts')
@@ -46,7 +45,6 @@ export function ProductsPage() {
         console.log('Ürünler:', products)
         setProducts(products)
         
-        // Her ürün için varsayılan miktar 1 olarak ayarla
         const defaultQuantities = products.reduce((acc, product) => ({
           ...acc,
           [product.id]: 1
@@ -94,9 +92,10 @@ export function ProductsPage() {
   }
 
   const handleAddToCart = async (product: Product) => {
+    const selectedQuantity = quantities[product.id] || 1;
     const currentCartItem = items.find(item => item.productId === product.id);
     const currentQuantity = currentCartItem?.quantity || 0;
-    const newQuantity = currentQuantity + 1;
+    const newQuantity = currentQuantity + selectedQuantity;
 
     if (newQuantity > product.stock) {
         toast.error('Yetersiz stok!');
@@ -111,11 +110,11 @@ export function ProductsPage() {
     addItem({
         productId: product.id,
         productName: product.name,
-        quantity: 1,
+        quantity: selectedQuantity,
         price: product.price
     });
 
-    toast.success(`${product.name} sepete eklendi`);
+    toast.success(`${product.name} sepete eklendi (${selectedQuantity} adet)`);
   };
 
   if (loading) {

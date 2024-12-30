@@ -4,16 +4,13 @@ import { lazy, Suspense } from 'react'
 import { useAuth } from './contexts/AuthContext'
 import { CartProvider } from './contexts/CartContext'
 
-// Layouts
 import AuthLayout from './layouts/AuthLayout'
 import AdminLayout from './layouts/AdminLayout'
 import CustomerLayout from './layouts/CustomerLayout'
 
-// Routes
 import AdminRoutes from './routes/AdminRoutes'
 import CustomerRoutes from './routes/CustomerRoutes'
 
-// Lazy loaded pages
 const AuthPage = lazy(() => import('./pages/Auth/AuthPage'))
 const NotFoundPage = lazy(() => import('./pages/NotFoundPage'))
 

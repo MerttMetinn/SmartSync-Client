@@ -19,7 +19,7 @@ const AdminLayout = ({ children }: AdminLayoutProps) => {
     }
 
     window.addEventListener('resize', handleResize)
-    handleResize() // Initial check
+    handleResize() 
     return () => window.removeEventListener('resize', handleResize)
   }, [])
 

@@ -71,7 +71,6 @@ const ProductsPage = () => {
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc')
   const [sortBy, setSortBy] = useState<'name' | 'price' | 'stock'>('name')
 
-  // Filtrelenmiş ve sıralanmış ürünleri hesapla
   const filteredAndSortedProducts = useMemo(() => {
     return products
       .filter(product => 
@@ -87,14 +86,12 @@ const ProductsPage = () => {
       })
   }, [products, searchQuery, sortOrder, sortBy])
 
-  // Sayfalanmış ürünleri hesapla
   const paginatedProducts = useMemo(() => {
     const start = (currentPage - 1) * pageSize
     const end = start + pageSize
     return filteredAndSortedProducts.slice(start, end)
   }, [filteredAndSortedProducts, currentPage, pageSize])
 
-  // Sayfa değiştiğinde veya sayfa boyutu değiştiğinde toplam sayfa sayısını güncelle
   useEffect(() => {
     const calculatedTotalPages = Math.ceil(filteredAndSortedProducts.length / pageSize)
     setTotalPages(calculatedTotalPages)
@@ -144,11 +141,10 @@ const ProductsPage = () => {
 
   const handlePageSizeChange = (newSize: number) => {
     setPageSize(newSize)
-    setCurrentPage(1) // Sayfa boyutu değiştiğinde ilk sayfaya dön
+    setCurrentPage(1)
   }
 
   const handleAddProduct = async () => {
-    // Validasyon kontrolleri
     if (!newProduct.name.trim()) {
       toast.error('Ürün adı boş bırakılamaz')
       return
@@ -166,7 +162,14 @@ const ProductsPage = () => {
       const response = await axiosInstance.post<ApiResponse<void>>('/api/Product/AddProduct', newProduct)
       
       if (response.data.response.success) {
-        toast.success(response.data.response.message || 'Ürün başarıyla eklendi')
+        toast.success(`"${newProduct.name}" isimli ürün başarıyla eklendi`, {
+          position: "top-right",
+          autoClose: 3000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+        })
         setNewProduct({
           name: '',
           price: 0,
@@ -188,7 +191,6 @@ const ProductsPage = () => {
   const handleEditProduct = async () => {
     if (!editingProduct) return
 
-    // Validasyon kontrolleri
     if (!editingProduct.name.trim()) {
       toast.error('Ürün adı boş bırakılamaz')
       return

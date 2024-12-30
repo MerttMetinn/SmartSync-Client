@@ -18,9 +18,15 @@ enum OrderStatus {
 interface Customer {
   id: string
   username: string
-  type: 'Normal' | 'Premium'
+  type: number 
   budget: number
   totalSpent: number
+}
+
+interface OrderProduct {
+  productId: string
+  quantity: number
+  product: Product
 }
 
 interface Order {
@@ -29,10 +35,7 @@ interface Order {
   status: number
   price: number
   customer: Customer | null
-  orderProducts: {
-    productId: string
-    quantity: number
-  }[] | null
+  orderProducts: OrderProduct[] | null
   createdDate: string
 }
 
@@ -63,7 +66,6 @@ const OrdersPage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true)
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc')
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null)
-  const [orderProducts, setOrderProducts] = useState<Product[]>([])
   const [isDrawerLoading, setIsDrawerLoading] = useState(false)
   const [filters, setFilters] = useState<FilterState>({
     search: ''
@@ -126,7 +128,7 @@ const OrdersPage: React.FC = () => {
 
   useEffect(() => {
     fetchOrders()
-    const interval = setInterval(fetchOrders, 5000)
+    const interval = setInterval(fetchOrders, 3000)
     return () => clearInterval(interval)
   }, [fetchOrders])
 
@@ -236,24 +238,6 @@ const OrdersPage: React.FC = () => {
   const handleOrderClick = async (order: Order) => {
     setSelectedOrder(order)
     setIsDrawerLoading(true)
-    
-    if (order.orderProducts) {
-      try {
-        const productPromises = order.orderProducts.map(async (op) => {
-          const response = await axiosInstance.get<{
-            response: { success: boolean; message: string }
-            product: Product
-          }>(`/api/Product/GetProductById/${op.productId}`)
-          return response.data.response.success ? response.data.product : null
-        })
-
-        const products = await Promise.all(productPromises)
-        setOrderProducts(products.filter((p): p is Product => p !== null))
-      } catch (error) {
-        console.error('Ürün bilgileri alınırken hata oluştu:', error)
-        toast.error('Ürün bilgileri yüklenirken bir hata oluştu')
-      }
-    }
     setIsDrawerLoading(false)
   }
 
@@ -429,7 +413,7 @@ const OrdersPage: React.FC = () => {
                           {order.customer?.username || 'Bilinmeyen Müşteri'}
                         </div>
                         <div className="text-sm text-gray-500 dark:text-gray-400">
-                          {order.customer?.type === 'Premium' ? (
+                          {order.customer?.type === 1 ? (
                             <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400">
                               Premium Üye
                             </span>
@@ -625,11 +609,11 @@ const OrdersPage: React.FC = () => {
                         <div className="flex justify-between">
                           <span className="text-gray-600 dark:text-gray-400">Üyelik Tipi:</span>
                           <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
-                            selectedOrder.customer?.type === 'Premium'
+                            selectedOrder.customer?.type === 1
                               ? 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400'
                               : 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400'
                           }`}>
-                            {selectedOrder.customer?.type === 'Premium' ? 'Premium Üye' : 'Normal Üye'}
+                            {selectedOrder.customer?.type === 1 ? 'Premium Üye' : 'Normal Üye'}
                           </span>
                         </div>
                         <div className="flex justify-between">
@@ -656,40 +640,35 @@ const OrdersPage: React.FC = () => {
                     <Card className="p-4">
                       <h3 className="text-lg font-semibold mb-4">Sipariş Ürünleri</h3>
                       <div className="space-y-4">
-                        {orderProducts.map((product) => {
-                          const orderProduct = selectedOrder.orderProducts?.find(
-                            op => op.productId === product.id
-                          )
-                          return (
-                            <div
-                              key={product.id}
-                              className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-900/50 rounded-lg"
-                            >
-                              <div className="flex-1">
-                                <h4 className="font-medium text-gray-900 dark:text-white">
-                                  {product.name}
-                                </h4>
-                                <p className="text-sm text-gray-600 dark:text-gray-400">
-                                  Birim Fiyat: {product.price.toLocaleString('tr-TR', {
-                                    style: 'currency',
-                                    currency: 'TRY'
-                                  })}
-                                </p>
-                              </div>
-                              <div className="text-right">
-                                <span className="text-sm font-medium text-gray-900 dark:text-white">
-                                  {orderProduct?.quantity || 0} Adet
-                                </span>
-                                <p className="text-sm text-gray-600 dark:text-gray-400">
-                                  Toplam: {((orderProduct?.quantity || 0) * product.price).toLocaleString('tr-TR', {
-                                    style: 'currency',
-                                    currency: 'TRY'
-                                  })}
-                                </p>
-                              </div>
+                        {selectedOrder.orderProducts?.map((orderProduct) => (
+                          <div
+                            key={orderProduct.productId}
+                            className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-900/50 rounded-lg"
+                          >
+                            <div className="flex-1">
+                              <h4 className="font-medium text-gray-900 dark:text-white">
+                                {orderProduct.product.name}
+                              </h4>
+                              <p className="text-sm text-gray-600 dark:text-gray-400">
+                                Birim Fiyat: {orderProduct.product.price.toLocaleString('tr-TR', {
+                                  style: 'currency',
+                                  currency: 'TRY'
+                                })}
+                              </p>
                             </div>
-                          )
-                        })}
+                            <div className="text-right">
+                              <span className="text-sm font-medium text-gray-900 dark:text-white">
+                                {orderProduct.quantity} Adet
+                              </span>
+                              <p className="text-sm text-gray-600 dark:text-gray-400">
+                                Toplam: {(orderProduct.quantity * orderProduct.product.price).toLocaleString('tr-TR', {
+                                  style: 'currency',
+                                  currency: 'TRY'
+                                })}
+                              </p>
+                            </div>
+                          </div>
+                        ))}
                       </div>
                     </Card>
                   </div>

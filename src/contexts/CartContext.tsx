@@ -31,13 +31,11 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       if (response.data.response.success) {
         setItems(response.data.cart?.items || [])
       } else if (response.data.response.responseType === 'NotFound') {
-        // Sepet bulunamadıysa boş array ile başlat
         setItems([])
       } else {
         toast.error(response.data.response.message)
       }
     } catch (error) {
-      // Hata durumunda sessizce boş array ile başlat
       console.warn('Sepet yüklenirken bir hata oluştu:', error)
       setItems([])
     }
@@ -52,23 +50,22 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   const saveCart = async (newItems: CartItem[]) => {
     try {
       const response = await axiosInstance.post('/api/Cart/UpdateCart', newItems)
-      if (!response.data.response.success && 
-          response.data.response.responseType !== 'NotFound') {
+      if (response.data.response.success) {
+        setItems(newItems)
+      } else if (response.data.response.responseType !== 'NotFound') {
         throw new Error(response.data.response.message || 'Sepet kaydedilirken bir hata oluştu')
       }
     } catch (error) {
       console.error('Sepet kaydetme hatası:', error)
-      // Kritik olmayan hatalar için sessiz kal
       if (error instanceof Error && !error.message.includes('NotFound')) {
         toast.error('Sepet kaydedilirken bir hata oluştu')
       }
-      await loadCart() // Hata durumunda sepeti yeniden yükle
+      await loadCart()
     }
   }
 
   const addItem = async (item: CartItem) => {
     try {
-        // Ürün stok kontrolü - endpoint düzeltildi
         const response = await axiosInstance.get(`/api/Product/GetProductById?Id=${item.productId}`);
         
         if (!response.data.response.success) {
@@ -127,9 +124,13 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     saveCart(newItems)
   }
 
-  const clearCart = () => {
-    setItems([])
-    saveCart([])
+  const clearCart = async () => {
+    try {
+      await saveCart([])
+      setItems([])
+    } catch (error) {
+      console.error('Sepet temizlenirken hata oluştu:', error)
+    }
   }
 
   const totalAmount = items.reduce((total, item) => total + (item.price * item.quantity), 0)

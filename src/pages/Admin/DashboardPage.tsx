@@ -56,12 +56,10 @@ const DashboardPage = () => {
       const orders: Order[] = ordersRes.data.orders
       const customers: Customer[] = customersRes.data.customers
 
-      // Toplam ürün değeri hesaplama
       const totalStockValue = products.reduce((sum, product) => 
         sum + (product.price * product.stock), 0
       )
 
-      // Son 7 günlük siparişleri grupla
       const last7Days = Array.from({ length: 7 }, (_, i) => {
         const date = new Date()
         date.setDate(date.getDate() - i)
@@ -97,7 +95,6 @@ const DashboardPage = () => {
 
   useEffect(() => {
     fetchDashboardData()
-    // Her 30 saniyede bir güncelle
     const interval = setInterval(fetchDashboardData, 30000)
     return () => clearInterval(interval)
   }, [fetchDashboardData])

@@ -40,6 +40,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true)
   const navigate = useNavigate()
 
+  const updateUserData = async () => {
+    const storedUser = localStorage.getItem('UserData')
+    if (storedUser) {
+      try {
+        const userData = JSON.parse(storedUser)
+        setUser(userData)
+      } catch (error) {
+        console.error('Kullanıcı verisi güncellenirken hata oluştu:', error)
+      }
+    }
+  }
+
+  useEffect(() => {
+    window.addEventListener('userDataUpdated', updateUserData)
+    return () => {
+      window.removeEventListener('userDataUpdated', updateUserData)
+    }
+  }, [])
+
   useEffect(() => {
     const initializeAuth = async () => {
       try {
@@ -47,10 +66,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const storedUser = localStorage.getItem('UserData')
 
         if (token && storedUser) {
-          // Token'ı axios instance'ına ekle
           axiosInstance.defaults.headers.common['Authorization'] = `Bearer ${token}`
           
-          // Kullanıcı bilgilerini güncelle
           try {
             const storedUserData = JSON.parse(storedUser)
             
@@ -70,7 +87,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 localStorage.removeItem('UserData')
               }
             } else if (storedUserData.type === 'admin') {
-              // Admin için sadece stored data'yı kullan
               setUser(storedUserData)
               setIsAuthenticated(true)
             }
@@ -115,7 +131,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(userData)
       setIsAuthenticated(true)
 
-      // Eğer müşteri girişi yapıldıysa, müşteri bilgilerini al
       if (userType === 'customer') {
         try {
           const customerResponse = await axiosInstance.get('/api/Customer/GetProfile')
